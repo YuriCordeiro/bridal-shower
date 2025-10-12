@@ -77,10 +77,6 @@ Na tela de sucesso após submissão:
    - Botão desabilitado até preenchimento obrigatório
    - CPF na tela de confirmação
 
-4. **No Admin** (http://localhost:3000/admin):
-   - Login: `carol` / `chacocozinha2024`
-   - Visualize CPF na lista de confirmações
-
 ## Status da Implementação
 
 ✅ **Campo CPF adicionado ao formulário**

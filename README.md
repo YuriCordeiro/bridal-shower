@@ -188,8 +188,8 @@ Para melhorar a aplicação:
 
 ## 📄 Licença
 
-Este projeto foi criado especificamente para o chá de cozinha da Ana e pode ser usado como base para eventos similares.
+Este projeto foi criado especificamente para o chá de cozinha do casal Carol e do Yuri e pode ser usado como base para eventos similares.
 
 ---
 
-**Feito com ❤️ para Carol & Yuri**
+**Feito com ❤️ por Yuri, para Carol & Yuri**
