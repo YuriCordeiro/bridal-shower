@@ -17,8 +17,13 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
-  GripVertical
+  GripVertical,
+  ChevronDown,
+  ChevronUp,
+  Filter
 } from 'lucide-react';
+import { GuestService } from '@/services/guestService';
+import { SupabaseGuest } from '@/lib/supabase';
 
 // Tipos locais para evitar problemas de importação
 interface RSVP {
@@ -31,6 +36,7 @@ interface RSVP {
   message?: string;
   submittedAt: string;
   createdAt: string;
+  companions?: SupabaseGuest[];
 }
 
 interface AdminGift {
@@ -457,6 +463,10 @@ export default function AdminDashboard() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   
+  // Estados para acompanhantes e filtros
+  const [expandedRsvps, setExpandedRsvps] = useState<Set<string>>(new Set());
+  const [giftFilter, setGiftFilter] = useState<'all' | 'available' | 'reserved'>('all');
+  
   const router = useRouter();
 
   useEffect(() => {
@@ -464,20 +474,41 @@ export default function AdminDashboard() {
       router.push('/admin');
       return;
     }
-    setRsvps(getRSVPs());
+    loadRSVPsWithCompanions();
     setGifts(getAdminGifts());
   }, [router]);
+
+  const loadRSVPsWithCompanions = async () => {
+    const rsvpsData = getRSVPs();
+    const rsvpsWithCompanions = await Promise.all(
+      rsvpsData.map(async (rsvp) => {
+        const companions = await GuestService.getGuestsByRSVPId(rsvp.id);
+        return { ...rsvp, companions };
+      })
+    );
+    setRsvps(rsvpsWithCompanions);
+  };
 
   const handleLogout = () => {
     logoutAdmin();
     router.push('/admin');
   };
 
-  const handleDeleteRSVP = (id: string) => {
+  const handleDeleteRSVP = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta confirmação?')) {
       deleteRSVP(id);
-      setRsvps(getRSVPs());
+      await loadRSVPsWithCompanions();
     }
+  };
+
+  const toggleRSVPExpansion = (id: string) => {
+    const newExpanded = new Set(expandedRsvps);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedRsvps(newExpanded);
   };
 
   const handleDeleteGift = (id: string) => {
@@ -555,6 +586,13 @@ export default function AdminDashboard() {
     .reduce((sum, rsvp) => sum + rsvp.guests, 0);
   const availableGifts = gifts.filter(gift => gift.isAvailable).length;
   const reservedGifts = gifts.filter(gift => gift.isReserved).length;
+
+  // Filtrar presentes baseado no filtro selecionado
+  const filteredGifts = gifts.filter(gift => {
+    if (giftFilter === 'available') return gift.isAvailable && !gift.isReserved;
+    if (giftFilter === 'reserved') return gift.isReserved;
+    return true; // 'all'
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -662,6 +700,9 @@ export default function AdminDashboard() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Nome
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -684,7 +725,7 @@ export default function AdminDashboard() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {rsvps.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                         <div className="flex flex-col items-center">
                           <Users className="w-12 h-12 text-gray-300 mb-4" />
                           <p>Nenhuma confirmação ainda</p>
@@ -693,44 +734,87 @@ export default function AdminDashboard() {
                     </tr>
                   ) : (
                     rsvps.map((rsvp) => (
-                      <tr key={rsvp.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {rsvp.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <Phone className="w-4 h-4 mr-2" />
-                            {rsvp.whatsapp || rsvp.phone}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            rsvp.attendance === 'sim'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {rsvp.attendance === 'sim' ? 'Confirmado' : 'Não vai'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {rsvp.guests} pessoa{rsvp.guests !== 1 ? 's' : ''}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-2" />
-                            {new Date(rsvp.createdAt || rsvp.submittedAt).toLocaleDateString('pt-BR')}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleDeleteRSVP(rsvp.id)}
-                            className="text-red-600 hover:text-red-900 p-1"
-                            title="Excluir confirmação"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
+                      <React.Fragment key={rsvp.id}>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {rsvp.companions && rsvp.companions.length > 0 && (
+                              <button
+                                onClick={() => toggleRSVPExpansion(rsvp.id)}
+                                className="text-gray-400 hover:text-gray-600"
+                                title={expandedRsvps.has(rsvp.id) ? 'Ocultar acompanhantes' : 'Mostrar acompanhantes'}
+                              >
+                                {expandedRsvps.has(rsvp.id) ? 
+                                  <ChevronUp className="w-5 h-5" /> : 
+                                  <ChevronDown className="w-5 h-5" />
+                                }
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {rsvp.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div className="flex items-center">
+                              <Phone className="w-4 h-4 mr-2" />
+                              {rsvp.whatsapp || rsvp.phone}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              rsvp.attendance === 'sim'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {rsvp.attendance === 'sim' ? 'Confirmado' : 'Não vai'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {rsvp.guests} pessoa{rsvp.guests !== 1 ? 's' : ''}
+                            {rsvp.companions && rsvp.companions.length > 0 && (
+                              <span className="ml-2 text-xs text-blue-600">
+                                ({rsvp.companions.length} acompanhante{rsvp.companions.length !== 1 ? 's' : ''})
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-2" />
+                              {new Date(rsvp.createdAt || rsvp.submittedAt).toLocaleDateString('pt-BR')}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() => handleDeleteRSVP(rsvp.id)}
+                              className="text-red-600 hover:text-red-900 p-1"
+                              title="Excluir confirmação"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                        
+                        {/* Linha expandida para acompanhantes */}
+                        {expandedRsvps.has(rsvp.id) && rsvp.companions && rsvp.companions.length > 0 && (
+                          <tr className="bg-gray-50">
+                            <td></td>
+                            <td colSpan={6} className="px-6 py-4">
+                              <div className="ml-4">
+                                <h4 className="text-sm font-medium text-gray-700 mb-2">Acompanhantes:</h4>
+                                <div className="space-y-2">
+                                  {rsvp.companions.map((companion, index) => (
+                                    <div key={companion.id} className="flex items-center space-x-4 text-sm text-gray-600">
+                                      <span className="font-medium">{index + 1}.</span>
+                                      <span><strong>Nome:</strong> {companion.name}</span>
+                                      <span><strong>WhatsApp:</strong> {companion.whatsapp}</span>
+                                      <span><strong>CPF:</strong> {companion.cpf}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))
                   )}
                 </tbody>
@@ -762,7 +846,23 @@ export default function AdminDashboard() {
             {/* Lista de presentes */}
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Lista de Presentes</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900">Lista de Presentes</h3>
+                  
+                  {/* Filtro de status */}
+                  <div className="flex items-center space-x-2">
+                    <Filter className="w-4 h-4 text-gray-400" />
+                    <select
+                      value={giftFilter}
+                      onChange={(e) => setGiftFilter(e.target.value as 'all' | 'available' | 'reserved')}
+                      className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="all">Todos ({gifts.length})</option>
+                      <option value="available">Disponíveis ({availableGifts})</option>
+                      <option value="reserved">Reservados ({reservedGifts})</option>
+                    </select>
+                  </div>
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -786,23 +886,30 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {gifts.length === 0 ? (
+                    {filteredGifts.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                           <div className="flex flex-col items-center">
                             <Gift className="w-12 h-12 text-gray-300 mb-4" />
-                            <p>Nenhum presente cadastrado</p>
-                            <button
-                              onClick={() => setShowGiftModal(true)}
-                              className="mt-4 text-blue-600 hover:text-blue-800 font-medium"
-                            >
-                              Adicionar primeiro presente
-                            </button>
+                            <p>
+                              {gifts.length === 0 
+                                ? 'Nenhum presente cadastrado' 
+                                : `Nenhum presente ${giftFilter === 'available' ? 'disponível' : 'reservado'}`
+                              }
+                            </p>
+                            {gifts.length === 0 && (
+                              <button
+                                onClick={() => setShowGiftModal(true)}
+                                className="mt-4 text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                Adicionar primeiro presente
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
                     ) : (
-                      gifts.map((gift, index) => (
+                      filteredGifts.map((gift, index) => (
                         <DraggableGiftRow
                           key={gift.id}
                           gift={gift}
