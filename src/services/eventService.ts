@@ -76,7 +76,7 @@ export class EventService {
         month: 'long',
         day: 'numeric'
       });
-    } catch (error) {
+    } catch {
       return dateString;
     }
   }
@@ -86,7 +86,7 @@ export class EventService {
     try {
       const [hours, minutes] = timeString.split(':');
       return `${hours}:${minutes}`;
-    } catch (error) {
+    } catch {
       return timeString;
     }
   }

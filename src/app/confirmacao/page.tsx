@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Users, Phone, MessageSquare, CreditCard, MessageCircle } from "lucide-react";
+import { Heart, Users, MessageSquare, CreditCard, MessageCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { RSVPService } from "@/services/rsvpService";

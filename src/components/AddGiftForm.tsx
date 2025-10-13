@@ -1,7 +1,7 @@
 // Versão simplificada do AddGiftForm apenas com criação manual
 
 import React, { useState } from 'react';
-import { Upload, X } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 interface AddGiftFormProps {
   onSave: () => void;

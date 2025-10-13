@@ -56,7 +56,7 @@ export class AuthService {
         .eq('id', user.id);
 
       // Remover hash da senha antes de retornar
-      const { password_hash, ...userWithoutPassword } = user;
+      const { password_hash: _, ...userWithoutPassword } = user;
 
       return {
         success: true,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Lock, User, Eye, EyeOff, Users, Gift, LogOut, Trash2, Plus, Edit2, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Phone, MessageSquare, CreditCard, Calendar } from 'lucide-react';
 import { RSVPService } from '@/services/rsvpService';
 import { GiftService } from '@/services/giftService';
@@ -16,8 +16,6 @@ function AdminDashboard() {
   const [gifts, setGifts] = useState<SupabaseGift[]>([]);
   const [editingGift, setEditingGift] = useState<SupabaseGift | null>(null);
   const [showAddGift, setShowAddGift] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Componente para Adicionar Novo Presente
   const AddGiftForm = ({ onSave, onCancel }: { 
@@ -318,10 +316,6 @@ function AdminDashboard() {
 
   const loadData = async () => {
     try {
-      // Carregar usuário atual
-      const sessionUser = AuthService.getSessionUser();
-      setCurrentUser(sessionUser);
-
       // Carregar RSVPs do Supabase
       const rsvpData = await RSVPService.getAllRSVPs();
       setRsvps(rsvpData);
@@ -329,12 +323,6 @@ function AdminDashboard() {
       // Carregar presentes do Supabase
       const giftData = await GiftService.getAllGifts();
       setGifts(giftData);
-
-      // Carregar usuários (apenas se for admin)
-      if (sessionUser) {
-        const userData = await AuthService.getAllUsers();
-        setUsers(userData);
-      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       alert('Erro ao carregar dados do Supabase. Verifique sua conexão.');
@@ -449,7 +437,6 @@ function AdminDashboard() {
     }, 100);
   };
   // Estatísticas rápidas
-  const totalRsvps = rsvps.length;
   const confirmedRsvps = rsvps.filter(rsvp => rsvp.attendance === 'sim').length;
   const totalGuests = rsvps.filter(rsvp => rsvp.attendance === 'sim').reduce((total) => total, 0);
   const purchasedGifts = gifts.filter(gift => gift.purchased).length;
@@ -1023,7 +1010,7 @@ function AdminDashboard() {
                       {rsvp.message && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                           <p className="text-xs font-medium text-blue-700 uppercase tracking-wide mb-2">Mensagem</p>
-                          <p className="text-sm text-blue-800 italic">"{rsvp.message}"</p>
+                          <p className="text-sm text-blue-800 italic">&ldquo;{rsvp.message}&rdquo;</p>
                         </div>
                       )}
                     </div>
@@ -1197,7 +1184,6 @@ export default function AdminLogin() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     // Verifica se já está logado usando AuthService
@@ -1322,12 +1308,12 @@ export default function AdminLogin() {
 
         {/* Back to Home */}
         <div className="text-center mt-6">
-          <a
+          <Link
             href="/"
             className="text-gray-600 hover:text-gray-800 text-sm underline"
           >
             Voltar para o site principal
-          </a>
+          </Link>
         </div>
       </div>
     </div>
