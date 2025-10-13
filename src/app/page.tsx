@@ -225,7 +225,7 @@ export default function Home() {
                     <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
                     <div>
                       <p className="font-medium text-gray-800 text-sm sm:text-base">Confirmar Presença</p>
-                      <p className="text-xs sm:text-sm text-gray-600">RSVP até 10 de Março</p>
+                      <p className="text-xs sm:text-sm text-gray-600">RSVP até 12 de Novembro</p>
                     </div>
                   </div>
                   <div className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 text-lg">›</div>
