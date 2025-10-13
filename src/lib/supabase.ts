@@ -17,6 +17,16 @@ export interface SupabaseRSVP {
   created_at?: string;
 }
 
+export interface SupabaseGuest {
+  id?: string;
+  rsvp_id: string;
+  name: string;
+  last_name: string;
+  whatsapp: string;
+  cpf: string;
+  created_at?: string;
+}
+
 export interface SupabaseGift {
   id?: string;
   name: string;

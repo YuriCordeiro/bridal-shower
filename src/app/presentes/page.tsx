@@ -5,7 +5,7 @@ import { GiftService } from '@/services/giftService';
 import { SupabaseGift } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
-import { Search, Gift, User, ExternalLink } from 'lucide-react';
+import { Search, Gift, User, ExternalLink, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 export default function Presentes() {
   const [gifts, setGifts] = useState<SupabaseGift[]>([]);
@@ -15,6 +15,9 @@ export default function Presentes() {
   const [showReserveModal, setShowReserveModal] = useState(false);
   const [selectedGift, setSelectedGift] = useState<SupabaseGift | null>(null);
   const [reserverName, setReserverName] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
+  const itemsPerPage = 10;
 
   // Função para formatar valores monetários em BRL
   const formatCurrency = (value: string | number): string => {
@@ -56,12 +59,34 @@ export default function Presentes() {
     ['Todos', ...Array.from(new Set(gifts.map(gift => gift.category).filter(cat => cat !== undefined)))] : 
     ['Todos'];
 
+  // Filtrar presentes
   const filteredGifts = gifts.filter(gift => {
     const matchesSearch = gift.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          gift.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'Todos' || gift.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  // Ordenar presentes por preço
+  const sortedGifts = [...filteredGifts].sort((a, b) => {
+    if (sortOrder === 'asc') {
+      return a.price - b.price;
+    } else if (sortOrder === 'desc') {
+      return b.price - a.price;
+    }
+    return 0; // Manter ordem original se sortOrder for 'none'
+  });
+
+  // Calcular paginação
+  const totalPages = Math.ceil(sortedGifts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedGifts = sortedGifts.slice(startIndex, endIndex);
+
+  // Resetar página quando filtros mudarem
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, sortOrder]);
 
   const handleReserve = (gift: SupabaseGift) => {
     setSelectedGift(gift);
@@ -104,7 +129,7 @@ return (
     <div className="min-h-screen bg-gray-50">
       <Header 
         title="Lista de Presentes"
-        subtitle="Escolha um presente especial para nós"
+        subtitle="As escolhas foram feitas baseadas no nosso gosto pessoal, mas também servem de referência para outros produtos"
       />
 
       {/* Search and Filter */}
@@ -137,6 +162,39 @@ return (
                 {category}
               </button>
             ))}
+          </div>
+
+          {/* Sort Control */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">
+              {sortedGifts.length} {sortedGifts.length === 1 ? 'presente' : 'presentes'}
+            </span>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">Ordenar por preço:</span>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : sortOrder === 'desc' ? 'none' : 'asc')}
+                className="flex items-center space-x-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                {sortOrder === 'none' && (
+                  <>
+                    <ArrowUpDown className="w-4 h-4" />
+                    <span>Padrão</span>
+                  </>
+                )}
+                {sortOrder === 'asc' && (
+                  <>
+                    <ArrowUp className="w-4 h-4" />
+                    <span>Menor preço</span>
+                  </>
+                )}
+                {sortOrder === 'desc' && (
+                  <>
+                    <ArrowDown className="w-4 h-4" />
+                    <span>Maior preço</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -171,13 +229,14 @@ return (
                 </div>
               </div>
             </div>
-          ) : filteredGifts.length === 0 ? (
+          ) : sortedGifts.length === 0 ? (
             <div className="text-center py-8">
               <Gift className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">Nenhum presente encontrado</p>
             </div>
           ) : (
-            filteredGifts.map((gift) => (
+            <>
+              {paginatedGifts.map((gift) => (
             <div
               key={gift.id}
               className={`bg-white rounded-xl border p-4 transition-opacity ${
@@ -248,7 +307,47 @@ return (
                 )}
               </div>
             </div>
-            ))
+            ))}
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center space-x-4 pt-6">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Anterior</span>
+                </button>
+                
+                <div className="flex space-x-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                        currentPage === page
+                          ? 'bg-gray-800 text-white'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span>Próxima</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            </>
           )}
         </div>
       </section>

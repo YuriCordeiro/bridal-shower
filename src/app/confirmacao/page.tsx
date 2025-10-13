@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Users, MessageSquare, CreditCard, MessageCircle } from "lucide-react";
+import { Heart, Users, MessageSquare, CreditCard, MessageCircle, Plus, Trash2, User, Phone } from "lucide-react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { RSVPService } from "@/services/rsvpService";
-import { SupabaseRSVP } from "@/lib/supabase";
+import { GuestService } from "@/services/guestService";
+import { SupabaseRSVP, SupabaseGuest } from "@/lib/supabase";
 
 const formatCPF = (cpf: string): string => {
   const numbers = cpf.replace(/\D/g, "");
@@ -36,18 +37,26 @@ const formatWhatsApp = (whatsapp: string): string => {
   }
 };
 
+interface GuestForm {
+  name: string;
+  whatsapp: string;
+  cpf: string;
+}
+
 export default function ConfirmacaoPage() {
   const [formData, setFormData] = useState({
     name: "",
     whatsapp: "",
     cpf: "",
     attendance: "" as "sim" | "nao" | "",
-    guests: 1,
     message: ""
   });
+  const [guestCount, setGuestCount] = useState(0);
+  const [guests, setGuests] = useState<GuestForm[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [nameError, setNameError] = useState("");
+  const [guestNameErrors, setGuestNameErrors] = useState<string[]>([]);
   const router = useRouter();
 
   const handleCPFChange = (value: string) => {
@@ -82,6 +91,44 @@ export default function ConfirmacaoPage() {
     }
   };
 
+  // Função para atualizar quantidade de acompanhantes
+  const handleGuestCountChange = (count: number) => {
+    setGuestCount(count);
+    
+    // Ajustar array de acompanhantes
+    const newGuests = Array(count).fill(null).map((_, index) => 
+      guests[index] || { name: "", whatsapp: "", cpf: "" }
+    );
+    setGuests(newGuests);
+    
+    // Inicializar array de erros de nome
+    setGuestNameErrors(Array(count).fill(""));
+  };
+
+  // Função para atualizar dados de um acompanhante específico
+  const handleGuestChange = (index: number, field: keyof GuestForm, value: string) => {
+    const newGuests = [...guests];
+    if (field === 'cpf') {
+      newGuests[index] = { ...newGuests[index], [field]: formatCPF(value) };
+    } else if (field === 'whatsapp') {
+      newGuests[index] = { ...newGuests[index], [field]: formatWhatsApp(value) };
+    } else if (field === 'name') {
+      newGuests[index] = { ...newGuests[index], [field]: value };
+      
+      // Validar nome em tempo real
+      const newErrors = [...guestNameErrors];
+      if (value.trim() && !validateFullName(value)) {
+        newErrors[index] = "Informe nome e sobrenome";
+      } else {
+        newErrors[index] = "";
+      }
+      setGuestNameErrors(newErrors);
+    } else {
+      newGuests[index] = { ...newGuests[index], [field]: value };
+    }
+    setGuests(newGuests);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -99,9 +146,13 @@ export default function ConfirmacaoPage() {
         return;
       }
 
+      const nameParts = formData.name.trim().split(/\s+/);
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(" ");
+
       const rsvpData: Omit<SupabaseRSVP, 'id' | 'created_at'> = {
-        name: formData.name,
-        last_name: formData.name.split(" ").slice(-1)[0],
+        name: firstName,
+        last_name: lastName,
         whatsapp: formData.whatsapp,
         cpf: formData.cpf,
         attendance: formData.attendance,
@@ -111,6 +162,47 @@ export default function ConfirmacaoPage() {
       const result = await RSVPService.createRSVP(rsvpData);
       
       if (result) {
+        // Se há acompanhantes e o convidado vai participar, salvar os acompanhantes
+        if (formData.attendance === 'sim' && guestCount > 0) {
+          // Validar dados dos acompanhantes
+          for (let i = 0; i < guests.length; i++) {
+            const guest = guests[i];
+            if (!guest.name || !guest.cpf) {
+              alert(`Por favor, preencha todos os campos obrigatórios do acompanhante ${i + 1}.`);
+              setIsSubmitting(false);
+              return;
+            }
+            if (!validateFullName(guest.name)) {
+              alert(`Por favor, informe o nome completo do acompanhante ${i + 1} (nome e sobrenome).`);
+              setIsSubmitting(false);
+              return;
+            }
+          }
+
+          // Preparar dados dos acompanhantes para salvar
+          const guestData = guests.map(guest => {
+            const nameParts = guest.name.trim().split(/\s+/);
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(" ");
+            
+            return {
+              rsvp_id: result.id!,
+              name: firstName,
+              last_name: lastName,
+              whatsapp: guest.whatsapp || formData.whatsapp, // Usar WhatsApp do convidado principal se não informado
+              cpf: guest.cpf
+            };
+          });
+
+          const guestResult = await GuestService.createGuests(guestData);
+          
+          if (!guestResult) {
+            alert("RSVP criado, mas houve erro ao salvar os acompanhantes. Tente novamente.");
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
         setShowSuccess(true);
         
         setTimeout(() => {
@@ -273,6 +365,103 @@ export default function ConfirmacaoPage() {
                   </label>
                 </div>
               </div>
+
+              {/* Seção de Acompanhantes - só aparece se a pessoa vai comparecer */}
+              {formData.attendance === "sim" && (
+                <div className="bg-gray-50 p-4 sm:p-6 rounded-xl">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Quantos acompanhantes você trará?
+                  </label>
+                  <select
+                    value={guestCount}
+                    onChange={(e) => handleGuestCountChange(Number(e.target.value))}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                  >
+                    <option value={0}>Apenas eu</option>
+                    <option value={1}>Eu + 1 acompanhante</option>
+                    <option value={2}>Eu + 2 acompanhantes</option>
+                    <option value={3}>Eu + 3 acompanhantes</option>
+                    <option value={4}>Eu + 4 acompanhantes</option>
+                  </select>
+
+                  {/* Formulário dos Acompanhantes */}
+                  {guestCount > 0 && (
+                    <div className="mt-6 space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Dados dos Acompanhantes
+                      </h3>
+                      {guests.map((guest: GuestForm, index: number) => (
+                        <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
+                          <h4 className="font-medium text-gray-700 mb-3">
+                            Acompanhante {index + 1}
+                          </h4>
+                          
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Nome Completo *
+                              </label>
+                              <div className="relative">
+                                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input
+                                  type="text"
+                                  value={guest.name}
+                                  onChange={(e) => handleGuestChange(index, 'name', e.target.value)}
+                                  className={`w-full pl-10 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent ${
+                                    guestNameErrors[index] 
+                                      ? "border-red-300 focus:ring-red-500" 
+                                      : "border-gray-200 focus:ring-gray-500"
+                                  }`}
+                                  placeholder="Nome do acompanhante"
+                                />
+                              </div>
+                              {guestNameErrors[index] && (
+                                <p className="text-red-500 text-sm mt-1">{guestNameErrors[index]}</p>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  WhatsApp
+                                </label>
+                                <div className="relative">
+                                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                  <input
+                                    type="tel"
+                                    value={guest.whatsapp}
+                                    onChange={(e) => handleGuestChange(index, 'whatsapp', e.target.value)}
+                                    maxLength={15}
+                                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                                    placeholder="(11) 99999-9999"
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  CPF *
+                                </label>
+                                <div className="relative">
+                                  <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                  <input
+                                    type="text"
+                                    value={guest.cpf}
+                                    onChange={(e) => handleGuestChange(index, 'cpf', e.target.value)}
+                                    maxLength={14}
+                                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                                    placeholder="000.000.000-00"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
