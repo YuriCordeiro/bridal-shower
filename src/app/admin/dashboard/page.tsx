@@ -23,19 +23,11 @@ import {
   Filter
 } from 'lucide-react';
 import { GuestService } from '@/services/guestService';
-import { SupabaseGuest } from '@/lib/supabase';
+import { RSVPService } from '@/services/rsvpService';
+import { SupabaseGuest, SupabaseRSVP } from '@/lib/supabase';
 
 // Tipos locais para evitar problemas de importação
-interface RSVP {
-  id: string;
-  name: string;
-  phone: string;
-  whatsapp: string;
-  attendance: 'sim' | 'nao';
-  guests: number;
-  message?: string;
-  submittedAt: string;
-  createdAt: string;
+interface RSVP extends SupabaseRSVP {
   companions?: SupabaseGuest[];
 }
 
@@ -65,17 +57,23 @@ const logoutAdmin = () => {
   localStorage.removeItem('bridal-shower-admin-logged');
 };
 
-const getRSVPs = (): RSVP[] => {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem('bridal-shower-rsvps');
-  return stored ? JSON.parse(stored) : [];
+const getRSVPs = async (): Promise<RSVP[]> => {
+  try {
+    const rsvps = await RSVPService.getAllRSVPs();
+    return rsvps;
+  } catch (error) {
+    console.error('Erro ao carregar RSVPs:', error);
+    return [];
+  }
 };
 
-const deleteRSVP = (id: string): void => {
-  if (typeof window === 'undefined') return;
-  const rsvps = getRSVPs();
-  const filtered = rsvps.filter(rsvp => rsvp.id !== id);
-  localStorage.setItem('bridal-shower-rsvps', JSON.stringify(filtered));
+const deleteRSVP = async (id: string): Promise<boolean> => {
+  try {
+    return await RSVPService.deleteRSVP(id);
+  } catch (error) {
+    console.error('Erro ao deletar RSVP:', error);
+    return false;
+  }
 };
 
 const getAdminGifts = (): AdminGift[] => {
@@ -470,34 +468,50 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
+    console.log('🔐 Verificando login do admin...', isAdminLoggedIn());
     if (!isAdminLoggedIn()) {
+      console.log('❌ Admin não logado, redirecionando...');
       router.push('/admin');
       return;
     }
+    console.log('✅ Admin logado, carregando dados...');
+    console.log('🚀 Iniciando carregamento dos dados do dashboard...');
     loadRSVPsWithCompanions();
     setGifts(getAdminGifts());
   }, [router]);
 
   const loadRSVPsWithCompanions = async () => {
-    const rsvpsData = getRSVPs();
-    const rsvpsWithCompanions = await Promise.all(
-      rsvpsData.map(async (rsvp) => {
-        const companions = await GuestService.getGuestsByRSVPId(rsvp.id);
-        return { ...rsvp, companions };
-      })
-    );
-    setRsvps(rsvpsWithCompanions);
-  };
-
-  const handleLogout = () => {
+    try {
+      console.log('🔍 Carregando RSVPs...');
+      const rsvpsData = await getRSVPs();
+      console.log('📊 RSVPs encontrados:', rsvpsData.length, rsvpsData);
+      
+      const rsvpsWithCompanions = await Promise.all(
+        rsvpsData.map(async (rsvp) => {
+          if (!rsvp.id) return { ...rsvp, companions: [] };
+          const companions = await GuestService.getGuestsByRSVPId(rsvp.id);
+          console.log(`👥 Acompanhantes para ${rsvp.name}:`, companions.length, companions);
+          return { ...rsvp, companions };
+        })
+      );
+      console.log('✅ RSVPs com acompanhantes:', rsvpsWithCompanions);
+      setRsvps(rsvpsWithCompanions);
+    } catch (error) {
+      console.error('❌ Erro ao carregar RSVPs com acompanhantes:', error);
+    }
+  };  const handleLogout = () => {
     logoutAdmin();
     router.push('/admin');
   };
 
   const handleDeleteRSVP = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta confirmação?')) {
-      deleteRSVP(id);
-      await loadRSVPsWithCompanions();
+      const success = await deleteRSVP(id);
+      if (success) {
+        await loadRSVPsWithCompanions();
+      } else {
+        alert('Erro ao excluir confirmação. Tente novamente.');
+      }
     }
   };
 
@@ -583,7 +597,11 @@ export default function AdminDashboard() {
   const confirmingCount = rsvps.filter(rsvp => rsvp.attendance === 'sim').length;
   const totalGuests = rsvps
     .filter(rsvp => rsvp.attendance === 'sim')
-    .reduce((sum, rsvp) => sum + rsvp.guests, 0);
+    .reduce((sum, rsvp) => {
+      // Contar o convidado principal + acompanhantes
+      const companionsCount = rsvp.companions ? rsvp.companions.length : 0;
+      return sum + 1 + companionsCount; // 1 (principal) + acompanhantes
+    }, 0);
   const availableGifts = gifts.filter(gift => gift.isAvailable).length;
   const reservedGifts = gifts.filter(gift => gift.isReserved).length;
 
@@ -737,13 +755,13 @@ export default function AdminDashboard() {
                       <React.Fragment key={rsvp.id}>
                         <tr>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rsvp.companions && rsvp.companions.length > 0 && (
+                            {rsvp.companions && rsvp.companions.length > 0 && rsvp.id && (
                               <button
-                                onClick={() => toggleRSVPExpansion(rsvp.id)}
+                                onClick={() => toggleRSVPExpansion(rsvp.id!)}
                                 className="text-gray-400 hover:text-gray-600"
-                                title={expandedRsvps.has(rsvp.id) ? 'Ocultar acompanhantes' : 'Mostrar acompanhantes'}
+                                title={expandedRsvps.has(rsvp.id!) ? 'Ocultar acompanhantes' : 'Mostrar acompanhantes'}
                               >
-                                {expandedRsvps.has(rsvp.id) ? 
+                                {expandedRsvps.has(rsvp.id!) ? 
                                   <ChevronUp className="w-5 h-5" /> : 
                                   <ChevronDown className="w-5 h-5" />
                                 }
@@ -756,7 +774,7 @@ export default function AdminDashboard() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div className="flex items-center">
                               <Phone className="w-4 h-4 mr-2" />
-                              {rsvp.whatsapp || rsvp.phone}
+                              {rsvp.whatsapp}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -769,32 +787,42 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {rsvp.guests} pessoa{rsvp.guests !== 1 ? 's' : ''}
-                            {rsvp.companions && rsvp.companions.length > 0 && (
-                              <span className="ml-2 text-xs text-blue-600">
-                                ({rsvp.companions.length} acompanhante{rsvp.companions.length !== 1 ? 's' : ''})
-                              </span>
-                            )}
+                            {(() => {
+                              const companionsCount = rsvp.companions ? rsvp.companions.length : 0;
+                              const totalPeople = 1 + companionsCount; // 1 (principal) + acompanhantes
+                              return (
+                                <div>
+                                  <span>{totalPeople} pessoa{totalPeople !== 1 ? 's' : ''}</span>
+                                  {companionsCount > 0 && (
+                                    <span className="ml-2 text-xs text-blue-600">
+                                      (1 + {companionsCount} acompanhante{companionsCount !== 1 ? 's' : ''})
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div className="flex items-center">
                               <Calendar className="w-4 h-4 mr-2" />
-                              {new Date(rsvp.createdAt || rsvp.submittedAt).toLocaleDateString('pt-BR')}
+                              {rsvp.created_at ? new Date(rsvp.created_at).toLocaleDateString('pt-BR') : '-'}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button
-                              onClick={() => handleDeleteRSVP(rsvp.id)}
-                              className="text-red-600 hover:text-red-900 p-1"
-                              title="Excluir confirmação"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {rsvp.id && (
+                              <button
+                                onClick={() => handleDeleteRSVP(rsvp.id!)}
+                                className="text-red-600 hover:text-red-900 p-1"
+                                title="Excluir confirmação"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                         
                         {/* Linha expandida para acompanhantes */}
-                        {expandedRsvps.has(rsvp.id) && rsvp.companions && rsvp.companions.length > 0 && (
+                        {rsvp.id && expandedRsvps.has(rsvp.id) && rsvp.companions && rsvp.companions.length > 0 && (
                           <tr className="bg-gray-50">
                             <td></td>
                             <td colSpan={6} className="px-6 py-4">
