@@ -148,12 +148,18 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <header className="text-center py-12 px-4 sm:py-16">
-        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+        {/* Logo do Casamento */}
+        <div className="mb-6">
+          <img 
+            src="/images/Monograma YC.png" 
+            alt="Monograma Carol & Yuri" 
+            className="h-38 w-auto mx-auto"
+          />
+        </div>
+        {/* Texto abaixo da logo */}
+        <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
           Chá de Cozinha
         </h1>
-        <p className="text-xl sm:text-2xl text-gray-600">
-          Carol & Yuri
-        </p>
       </header>
 
       <section className="px-4 mb-6 sm:mb-8">

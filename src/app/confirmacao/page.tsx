@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, Users, MessageSquare, CreditCard, MessageCircle, Plus, Trash2, User, Phone } from "lucide-react";
-import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
+import Header from "@/components/Header";
 import { RSVPService } from "@/services/rsvpService";
 import { GuestService } from "@/services/guestService";
 import { SupabaseRSVP, SupabaseGuest } from "@/lib/supabase";
@@ -322,7 +322,7 @@ export default function ConfirmacaoPage() {
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-1">
-                  Necessario para organizacao do evento
+                  Necessário para organização do evento
                 </p>
               </div>
 
