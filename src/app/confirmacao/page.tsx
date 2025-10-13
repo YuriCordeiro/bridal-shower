@@ -88,7 +88,7 @@ export default function ConfirmacaoPage() {
 
     try {
       if (!formData.name || !formData.cpf || !formData.attendance) {
-        alert("Por favor, preencha todos os campos obrigatorios.");
+        alert("Por favor, preencha todos os campos obrigatórios.");
         setIsSubmitting(false);
         return;
       }
@@ -117,12 +117,12 @@ export default function ConfirmacaoPage() {
           router.push("/");
         }, 3000);
       } else {
-        alert("Erro ao salvar sua confirmacao. Tente novamente.");
+        alert("Erro ao salvar sua confirmação. Tente novamente.");
       }
 
     } catch (error) {
-      console.error("Erro ao salvar confirmacao:", error);
-      alert("Erro ao salvar sua confirmacao. Tente novamente.");
+      console.error("Erro ao salvar confirmação:", error);
+      alert("Erro ao salvar sua confirmação. Tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -131,7 +131,7 @@ export default function ConfirmacaoPage() {
   if (showSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        <Header title="Confirmacao de Presença" />
+        <Header title="Confirmação de Presença" />
         <div className="flex items-center justify-center px-4 py-8">
           <div className="max-w-md w-full text-center">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
@@ -160,7 +160,7 @@ export default function ConfirmacaoPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-20">
-      <Header title="Confirmacao de Presença" />
+      <Header title="Confirmação de Presença" />
       
       <main className="px-4 py-4 sm:py-8">
         <div className="max-w-md mx-auto">
@@ -236,7 +236,7 @@ export default function ConfirmacaoPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Voce vai participar do cha de cozinha? *
+                  Você vai participar do chá de cozinha? *
                 </label>
                 <div className="space-y-3">
                   <label className="flex items-center cursor-pointer">
@@ -268,7 +268,7 @@ export default function ConfirmacaoPage() {
                       className="w-4 h-4 text-gray-600 border-gray-300 focus:ring-gray-500"
                     />
                     <span className="ml-3 text-gray-700">
-                      Infelizmente nao poderei ir
+                      Infelizmente não poderei ir
                     </span>
                   </label>
                 </div>

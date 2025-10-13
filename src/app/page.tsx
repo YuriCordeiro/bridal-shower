@@ -20,16 +20,22 @@ export default function Home() {
     if (!dateString) return '';
     
     try {
-      const date = new Date(dateString);
+      // Criar data sem problemas de fuso horário
+      const dateParts = dateString.split('-');
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // Mês é 0-indexado
+      const day = parseInt(dateParts[2]);
+      
+      const date = new Date(year, month, day);
       const daysOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
       const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
       
       const dayOfWeek = daysOfWeek[date.getDay()];
-      const day = date.getDate();
-      const month = months[date.getMonth()];
-      const year = date.getFullYear();
+      const dayOfMonth = date.getDate();
+      const monthName = months[date.getMonth()];
+      const yearFull = date.getFullYear();
       
-      return `${dayOfWeek}, ${day} de ${month} de ${year}`;
+      return `${dayOfWeek}, ${dayOfMonth} de ${monthName} de ${yearFull}`;
     } catch (error) {
       console.error('Erro ao formatar data:', error);
       return dateString;
@@ -45,15 +51,15 @@ export default function Home() {
       if (timeString.includes(':')) {
         const [hours, minutes] = timeString.split(':');
         const formattedHours = hours.padStart(2, '0');
-        const formattedMinutes = minutes.padStart(2, '0');
-        return `${formattedHours}:${formattedMinutes}h`;
+        // const formattedMinutes = minutes.padStart(2, '0');
+        return `${formattedHours}h`;
       }
       
       // Se for uma string de horário diferente, tentar parsear
       const date = new Date(`2000-01-01T${timeString}`);
       const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      return `${hours}:${minutes}h`;
+      // const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}h`;
     } catch (error) {
       console.error('Erro ao formatar horário:', error);
       return timeString;
@@ -219,7 +225,7 @@ export default function Home() {
                     <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
                     <div>
                       <p className="font-medium text-gray-800 text-sm sm:text-base">Confirmar Presença</p>
-                      <p className="text-xs sm:text-sm text-gray-600">RSVP até 12 de Novembro</p>
+                      <p className="text-xs sm:text-sm text-gray-600">RSVP até 10 de Março</p>
                     </div>
                   </div>
                   <div className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 text-lg">›</div>

@@ -17,6 +17,25 @@ function AdminDashboard() {
   const [editingGift, setEditingGift] = useState<SupabaseGift | null>(null);
   const [showAddGift, setShowAddGift] = useState(false);
 
+  // Função para formatar valores monetários em BRL
+  const formatCurrency = (value: string | number): string => {
+    if (!value) return 'R$ 0,00';
+    
+    // Converter para número se for string
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    
+    // Verificar se é um número válido
+    if (isNaN(numericValue)) return 'R$ 0,00';
+    
+    // Formatar como moeda brasileira
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numericValue);
+  };
+
   // Componente para Adicionar Novo Presente
   const AddGiftForm = ({ onSave, onCancel }: { 
     onSave: () => void; 
@@ -1057,7 +1076,7 @@ function AdminDashboard() {
                           />
                           <div>
                             <h3 className="font-medium text-gray-900">{gift.name}</h3>
-                            <p className="text-sm text-gray-500">R$ {gift.price.toFixed(2)}</p>
+                            <p className="text-sm text-gray-500">{formatCurrency(gift.price)}</p>
                             {gift.link && (
                               <a 
                                 href={gift.link} 

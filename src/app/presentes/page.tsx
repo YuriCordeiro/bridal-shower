@@ -16,6 +16,25 @@ export default function Presentes() {
   const [selectedGift, setSelectedGift] = useState<SupabaseGift | null>(null);
   const [reserverName, setReserverName] = useState('');
 
+  // Função para formatar valores monetários em BRL
+  const formatCurrency = (value: string | number): string => {
+    if (!value) return 'R$ 0,00';
+    
+    // Converter para número se for string
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    
+    // Verificar se é um número válido
+    if (isNaN(numericValue)) return 'R$ 0,00';
+    
+    // Formatar como moeda brasileira
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numericValue);
+  };
+
   useEffect(() => {
     // Carregar presentes do Supabase
     const loadGifts = async () => {
@@ -198,7 +217,7 @@ return (
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-bold text-gray-800">
-                      {gift.price}
+                      {formatCurrency(gift.price)}
                     </span>
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
                       {gift.category}
@@ -245,7 +264,7 @@ return (
             <div className="mb-4 p-4 bg-gray-50 rounded-lg">
               <h4 className="font-semibold text-gray-800">{selectedGift.name}</h4>
               <p className="text-sm text-gray-600">{selectedGift.description}</p>
-              <p className="text-lg font-bold text-gray-800 mt-2">{selectedGift.price}</p>
+              <p className="text-lg font-bold text-gray-800 mt-2">{formatCurrency(selectedGift.price)}</p>
             </div>
 
             <div className="mb-4">
