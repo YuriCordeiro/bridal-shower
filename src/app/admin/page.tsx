@@ -9,9 +9,7 @@ import {
   Trash2, 
   Plus, 
   Edit2, 
-  Check,
   Phone,
-  MessageCircle,
   Calendar,
   Upload,
   ExternalLink,
@@ -53,10 +51,6 @@ interface AdminGift {
 }
 
 // Funções auxiliares locais
-const isAdminLoggedIn = () => {
-  return AuthService.isAuthenticated();
-};
-
 const logoutAdmin = () => {
   AuthService.logout();
 };
@@ -109,195 +103,6 @@ const convertToAdminGift = (gift: SupabaseGift): AdminGift => {
   };
 };
 
-// Componente de linha arrastável para presente
-function DraggableGiftRow({ 
-  gift, 
-  index,
-  onEdit,
-  onDelete,
-  onToggleAvailability,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDrop,
-  isDragging,
-  dragOverIndex,
-  isDragEnabled = true,
-  onMoveUp,
-  onMoveDown,
-  isFirst,
-  isLast,
-  totalItems
-}: {
-  gift: AdminGift;
-  index: number;
-  onEdit: (gift: AdminGift) => void;
-  onDelete: (id: string) => void;
-  onToggleAvailability: (gift: AdminGift) => void;
-  onDragStart: (index: number) => void;
-  onDragEnd: () => void;
-  onDragOver: (e: React.DragEvent, index: number) => void;
-  onDrop: (e: React.DragEvent, index: number) => void;
-  isDragging: boolean;
-  dragOverIndex: number | null;
-  isDragEnabled?: boolean;
-  onMoveUp?: (giftId: string) => void;
-  onMoveDown?: (giftId: string) => void;
-  isFirst?: boolean;
-  isLast?: boolean;
-  totalItems?: number;
-}) {
-  return (
-    <tr 
-      key={gift.id}
-      draggable={isDragEnabled}
-      onDragStart={() => isDragEnabled && onDragStart(index)}
-      onDragEnd={isDragEnabled ? onDragEnd : undefined}
-      onDragOver={(e) => isDragEnabled && onDragOver(e, index)}
-      onDrop={(e) => isDragEnabled && onDrop(e, index)}
-      className={`transition-all duration-200 ${
-        isDragging ? 'opacity-50 scale-95 bg-blue-50 border-2 border-blue-300 border-dashed' : ''
-      } ${
-        dragOverIndex === index ? 'border-t-4 border-pink-500 bg-blue-25' : ''
-      } hover:bg-gray-50 ${isDragEnabled ? 'cursor-move hover:shadow-md' : 'cursor-default'}`}
-    >
-      <td className="px-6 py-4 whitespace-nowrap text-center">
-        <div className="flex flex-col items-center space-y-1">
-          <span className="text-sm font-medium text-gray-900">
-            {gift.order || index + 1}
-          </span>
-          {isDragEnabled && (
-            <div className="flex flex-col space-y-0">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveUp && onMoveUp(gift.id);
-                }}
-                disabled={isFirst}
-                className={`p-0.5 rounded text-xs ${
-                  isFirst 
-                    ? 'text-gray-300 cursor-not-allowed' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
-                title="Mover para cima"
-              >
-                <ArrowUp className="w-3 h-3" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveDown && onMoveDown(gift.id);
-                }}
-                disabled={isLast}
-                className={`p-0.5 rounded text-xs ${
-                  isLast 
-                    ? 'text-gray-300 cursor-not-allowed' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
-                title="Mover para baixo"
-              >
-                <ArrowDown className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center">
-          <div className={`mr-3 p-1 rounded transition-all duration-150 ${
-            isDragEnabled 
-              ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-grab active:cursor-grabbing' 
-              : 'text-gray-300 cursor-not-allowed'
-          }`}>
-            <GripVertical className="w-4 h-4" />
-          </div>
-          {gift.image && (
-            <img className="h-10 w-10 rounded-xl object-cover mr-4" src={gift.image} alt="" />
-          )}
-          <div>
-            <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
-              {gift.name}
-              {gift.link && (
-                <a 
-                  href={gift.link} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-blue-800"
-                  title="Ver produto"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              )}
-            </div>
-            {gift.description && (
-              <div className="text-sm text-gray-500 truncate max-w-xs">{gift.description}</div>
-            )}
-          </div>
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {gift.category}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {gift.price}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex flex-col space-y-1">
-          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-            gift.isReserved
-              ? 'bg-green-100 text-green-800'
-              : gift.isAvailable 
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}>
-            {gift.isReserved ? 'Reservado' : gift.isAvailable ? 'Disponível' : 'Indisponível'}
-          </span>
-          {gift.isReserved && gift.reservedBy && (
-            <div className="text-xs text-gray-500">
-              <User className="w-3 h-3 inline mr-1" />
-              {gift.reservedBy}
-            </div>
-          )}
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <div className="flex items-center justify-end space-x-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleAvailability(gift);
-            }}
-            className={`p-1 ${gift.isAvailable ? 'text-gray-600 hover:text-gray-900' : 'text-green-600 hover:text-green-900'}`}
-            title={gift.isAvailable ? 'Tornar indisponível' : 'Tornar disponível'}
-          >
-            {gift.isAvailable ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(gift);
-            }}
-            className="text-gray-600 hover:text-blue-900 p-1"
-            title="Editar presente"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(gift.id);
-            }}
-            className="text-red-600 hover:text-red-900 p-1"
-            title="Excluir presente"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-}
 
 // Modal para adicionar/editar presente
 function GiftModal({ 
@@ -346,7 +151,7 @@ function GiftModal({
     try {
       if (gift) {
         // Atualizar presente existente
-        const updateData: any = {
+        const updateData: Partial<SupabaseGift> = {
           name: formData.name,
           description: formData.description,
           price: parseFloat(formData.price),
