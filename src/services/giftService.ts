@@ -201,4 +201,24 @@ export class GiftService {
       };
     }
   }
+
+  // Obter URL pública da imagem do Supabase
+  static getImageUrl(imagePath: string | null | undefined): string {
+    if (!imagePath) {
+      return '/placeholder-gift.svg';
+    }
+    
+    // Se já é uma URL completa, retorna como está
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    
+    // Se é apenas o nome do arquivo, constroi a URL do Supabase
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (supabaseUrl) {
+      return `${supabaseUrl}/storage/v1/object/public/gifts/${imagePath}`;
+    }
+    
+    return '/placeholder-gift.svg';
+  }
 }

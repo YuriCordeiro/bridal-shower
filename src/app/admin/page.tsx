@@ -797,44 +797,44 @@ function AdminDashboard() {
         <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mb-2">
           Área Administrativa
         </h1>
-        <p className="text-gray-600">Chá de Cozinha - Carol & Yuri</p>
+        <p className="text-gray-600">Chá de Cozinha</p>
       </header>
 
       {/* Stats Cards */}
       <section className="px-4 mb-6 sm:mb-8">
-        <div className="max-w-md mx-auto">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 text-center">
-            Estatísticas do Evento
-          </h2>
-          
-          <div className="space-y-3 sm:space-y-4">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-4">
-              <div className="flex items-center space-x-3">
-                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
-                <div>
-                  <p className="font-medium text-gray-800 text-sm sm:text-base">Confirmados</p>
-                  <p className="text-gray-600 text-sm sm:text-base">{confirmingCount} pessoas</p>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Confirmações</p>
+                <p className="text-2xl font-bold text-gray-900">{confirmingCount}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Users className="w-6 h-6 text-blue-600" />
               </div>
             </div>
+          </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-4">
-              <div className="flex items-center space-x-3">
-                <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
-                <div>
-                  <p className="font-medium text-gray-800 text-sm sm:text-base">Total de Convidados</p>
-                  <p className="text-gray-600 text-sm sm:text-base">{totalGuests} pessoas</p>
-                </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total de Convidados</p>
+                <p className="text-2xl font-bold text-gray-900">{totalGuests}</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-lg">
+                <Users className="w-6 h-6 text-green-600" />
               </div>
             </div>
+          </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-4">
-              <div className="flex items-center space-x-3">
-                <Gift className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
-                <div>
-                  <p className="font-medium text-gray-800 text-sm sm:text-base">Presentes Disponíveis</p>
-                  <p className="text-gray-600 text-sm sm:text-base">{availableGifts} itens</p>
-                </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Presentes Comprados</p>
+                <p className="text-2xl font-bold text-gray-900">{reservedGifts}/{gifts.length}</p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Gift className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </div>
@@ -1030,122 +1030,173 @@ function AdminDashboard() {
                 <Plus className="w-4 h-4" />
                 Adicionar Presente
               </button>
-              
-              {gifts.length > 0 && (
-                <div className="text-sm flex items-center gap-2">
-                  <GripVertical className="w-4 h-4" />
-                  {giftFilter === 'all' ? (
-                    <span className="text-gray-500">?? Arraste os presentes pela alça para reordenar a lista</span>
-                  ) : (
-                    <span className="text-amber-600">?? Para reordenar os presentes, selecione "Todos" no filtro acima</span>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Lista de presentes */}
-            <div className="bg-gray-50 rounded-xl border border-gray-200 mt-6">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900">Lista de Presentes</h3>
-                  
-                  {/* Filtro de status */}
-                  <div className="flex items-center space-x-2">
-                    <Filter className="w-4 h-4 text-gray-400" />
-                    <select
-                      value={giftFilter}
-                      onChange={(e) => setGiftFilter(e.target.value as 'all' | 'available' | 'reserved')}
-                      className="text-sm border border-gray-300 rounded-xl px-3 py-1 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
-                    >
-                      <option value="all">Todos ({gifts.length})</option>
-                      <option value="available">Disponíveis ({availableGifts})</option>
-                      <option value="reserved">Reservados ({reservedGifts})</option>
-                    </select>
-                  </div>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Lista de Presentes</h3>
+                
+                {/* Filtro de status */}
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4 text-gray-400" />
+                  <select
+                    value={giftFilter}
+                    onChange={(e) => setGiftFilter(e.target.value as 'all' | 'available' | 'reserved')}
+                    className="text-sm border border-gray-300 rounded-xl px-3 py-1 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                  >
+                    <option value="all">Todos ({gifts.length})</option>
+                    <option value="available">Disponíveis ({availableGifts})</option>
+                    <option value="reserved">Reservados ({reservedGifts})</option>
+                  </select>
                 </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          #
-                        </div>
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          <GripVertical className="w-3 h-3 text-gray-400" />
-                          Presente
-                        </div>
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Categoria
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Preço
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status / Reservado por
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Ações
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredGifts.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                          <div className="flex flex-col items-center">
-                            <Gift className="w-12 h-12 text-gray-300 mb-4" />
-                            <p>
-                              {gifts.length === 0 
-                                ? 'Nenhum presente cadastrado' 
-                                : `Nenhum presente ${giftFilter === 'available' ? 'disponível' : 'reservado'}`
-                              }
-                            </p>
-                            {gifts.length === 0 && (
+
+              <div className="space-y-4">
+                {giftFilter === 'all' && (
+                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800 flex items-center font-medium">
+                      <ArrowUp className="w-4 h-4 mr-1" />
+                      <ArrowDown className="w-4 h-4 mr-2" />
+                      Use o lápis para editar um item ou as setas para reordená-lo rapidamente!
+                    </p>
+                  </div>
+                )}
+
+                {filteredGifts.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    <div className="flex flex-col items-center">
+                      <Gift className="w-12 h-12 text-gray-300 mb-4" />
+                      <p>
+                        {gifts.length === 0 
+                          ? 'Nenhum presente cadastrado' 
+                          : `Nenhum presente ${giftFilter === 'available' ? 'disponível' : 'reservado'}`
+                        }
+                      </p>
+                      {gifts.length === 0 && (
+                        <button
+                          onClick={() => setShowGiftModal(true)}
+                          className="mt-4 text-gray-600 hover:text-blue-800 font-medium"
+                        >
+                          Adicionar primeiro presente
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  filteredGifts.map((gift, filteredIndex) => {
+                    const originalIndex = gifts.findIndex(g => g.id === gift.id);
+                    const isDragEnabled = giftFilter === 'all'; // Só permite drag quando mostra todos
+                    const isFirst = originalIndex === 0;
+                    const isLast = originalIndex === gifts.length - 1;
+                    
+                    return (
+                      <div key={gift.id} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02]">
+                        <div className="flex items-center justify-between flex-wrap sm:flex-nowrap gap-3">
+                          <div className="flex items-center space-x-3">
+                            <img 
+                              alt={gift.name} 
+                              className="w-12 h-12 object-cover rounded-lg" 
+                              src={GiftService.getImageUrl(gift.image)}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/placeholder-gift.svg';
+                              }}
+                              crossOrigin="anonymous"
+                            />
+                            <div>
+                              <h3 className="font-medium text-gray-900">{gift.name}</h3>
+                              <p className="text-sm text-gray-500">R$ {Number(gift.price || 0).toFixed(2)}</p>
+                              {gift.link && (
+                                <a 
+                                  href={gift.link} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                >
+                                  🔗 Ver produto
+                                </a>
+                              )}
+                              <span className={`inline-block px-2 py-1 rounded text-xs ${
+                                gift.isReserved 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {gift.isReserved ? 'Comprado' : 'Disponível'}
+                              </span>
+                              {gift.isReserved && gift.reservedBy && (
+                                <p className="text-xs text-gray-600 mt-1">
+                                  Reservado por: {gift.reservedBy}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            {gift.isReserved && (
                               <button
-                                onClick={() => setShowGiftModal(true)}
-                                className="mt-4 text-gray-600 hover:text-blue-800 font-medium"
+                                onClick={() => toggleGiftAvailability(gift)}
+                                className="p-3 rounded-lg transition-all duration-200 touch-manipulation border bg-orange-50 text-orange-600 hover:bg-orange-100 active:bg-orange-200 border-orange-200 shadow-sm hover:shadow-md active:scale-95 hover:border-orange-300"
+                                title="Disponibilizar presente novamente"
                               >
-                                Adicionar primeiro presente
+                                <Gift className="w-5 h-5" />
                               </button>
                             )}
+                            
+                            <button
+                              onClick={() => handleEditGift(gift)}
+                              className="p-3 rounded-lg transition-all duration-200 touch-manipulation border bg-green-50 text-green-600 hover:bg-green-100 active:bg-green-200 border-green-200 shadow-sm hover:shadow-md active:scale-95 hover:border-green-300"
+                              title="Editar presente (incluindo posição)"
+                            >
+                              <Edit2 className="w-5 h-5" />
+                            </button>
+                            
+                            <button
+                              onClick={() => handleDeleteGift(gift.id)}
+                              className="p-3 rounded-lg transition-all duration-200 touch-manipulation border bg-red-50 text-red-600 hover:bg-red-100 active:bg-red-200 border-red-200 shadow-sm hover:shadow-md active:scale-95 hover:border-red-300"
+                              title="Excluir presente"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                            
+                            {isDragEnabled && (
+                              <div className="flex flex-col space-y-1">
+                                <button
+                                  onClick={() => moveGiftUp && moveGiftUp(gift.id)}
+                                  disabled={isFirst}
+                                  className={`p-3 rounded-lg transition-all duration-200 touch-manipulation border ${
+                                    isFirst 
+                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' 
+                                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100 active:bg-blue-200 border-blue-200 shadow-sm hover:shadow-md active:scale-95 hover:border-blue-300'
+                                  }`}
+                                  title={isFirst ? "Já está no topo" : "Mover para cima"}
+                                >
+                                  <ChevronUp className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => moveGiftDown && moveGiftDown(gift.id)}
+                                  disabled={isLast}
+                                  className={`p-3 rounded-lg transition-all duration-200 touch-manipulation border ${
+                                    isLast 
+                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' 
+                                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100 active:bg-blue-200 border-blue-200 shadow-sm hover:shadow-md active:scale-95 hover:border-blue-300'
+                                  }`}
+                                  title={isLast ? "Já está no final" : "Mover para baixo"}
+                                >
+                                  <ChevronDown className="w-5 h-5" />
+                                </button>
+                              </div>
+                            )}
+                            
+                            <div className="text-sm text-gray-700 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg px-4 py-3 font-bold border border-gray-300 shadow-sm min-w-[50px] text-center">
+                              #{originalIndex + 1}
+                            </div>
                           </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredGifts.map((gift, filteredIndex) => {
-                        const originalIndex = gifts.findIndex(g => g.id === gift.id);
-                        const isDragEnabled = giftFilter === 'all'; // Só permite drag quando mostra todos
-                        return (
-                          <DraggableGiftRow
-                            key={gift.id}
-                            gift={gift}
-                            index={originalIndex}
-                            onEdit={handleEditGift}
-                            onDelete={handleDeleteGift}
-                            onToggleAvailability={toggleGiftAvailability}
-                            onDragStart={isDragEnabled ? handleDragStart : () => {}}
-                            onDragEnd={isDragEnabled ? handleDragEnd : () => {}}
-                            onDragOver={isDragEnabled ? handleDragOver : () => {}}
-                            onDrop={isDragEnabled ? handleDrop : () => {}}
-                            isDragging={isDragEnabled && draggedIndex === originalIndex}
-                            dragOverIndex={isDragEnabled ? dragOverIndex : null}
-                            isDragEnabled={isDragEnabled}
-                            onMoveUp={isDragEnabled ? moveGiftUp : undefined}
-                            onMoveDown={isDragEnabled ? moveGiftDown : undefined}
-                            isFirst={originalIndex === 0}
-                            isLast={originalIndex === gifts.length - 1}
-                            totalItems={gifts.length}
-                          />
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
