@@ -2,6 +2,48 @@
 
 Uma aplicação web moderna e responsiva para gerenciar lista de presentes e confirmações de presença para chá de cozinha.
 
+## 🔐 Resolução do Problema RLS (Row Level Security)
+
+Se você está enfrentando erro 406 no login admin, isso significa que o RLS foi habilitado na tabela `admin_users`. Esta aplicação foi atualizada para usar **autenticação nativa do Supabase** em vez de consultas diretas à tabela.
+
+### ✅ Solução Implementada:
+- Sistema de login migrado para `supabase.auth.signInWithPassword()`
+- Não depende mais de acesso direto à tabela `admin_users`
+- Compatível com políticas RLS rigorosas
+- Segurança aprimorada
+
+### 🔧 Como Criar o Primeiro Usuário Admin:
+
+**Opção 1: Via Supabase Dashboard**
+1. Acesse seu projeto no [Supabase Dashboard](https://app.supabase.com)
+2. Vá para Authentication > Users
+3. Clique em "Add user"
+4. Use o formato: `admin@admin.local` (ou `seuusername@admin.local`)
+5. Defina uma senha segura
+6. Salve o usuário
+
+**Opção 2: Via Script (Recomendado)**
+```bash
+# Execute o script helper
+node create-admin.js
+```
+
+**Opção 3: Programaticamente**
+```javascript
+// Use este código no console do navegador na página da aplicação
+const { AuthService } = await import('./src/services/authService.ts');
+const result = await AuthService.createUser({
+  username: 'admin',
+  password: 'suaSenhaSegura123'
+});
+console.log(result);
+```
+
+### 🚨 Credenciais de Login:
+- **Email:** `admin@admin.local` (ou `username@admin.local`)
+- **Senha:** A que você definiu
+- **No formulário, use apenas:** `admin` (username sem @admin.local)
+
 ## 📱 Funcionalidades
 
 ### ✨ **Página Inicial**

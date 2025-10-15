@@ -51,8 +51,8 @@ interface AdminGift {
 }
 
 // Funções auxiliares locais
-const logoutAdmin = () => {
-  AuthService.logout();
+const logoutAdmin = async () => {
+  await AuthService.logout();
 };
 
 const getRSVPs = async (): Promise<RSVP[]> => {
@@ -398,8 +398,8 @@ function AdminDashboard() {
     } catch (error) {
       console.error('? Erro ao carregar RSVPs com acompanhantes:', error);
     }
-  };  const handleLogout = () => {
-    logoutAdmin();
+  };  const handleLogout = async () => {
+    await logoutAdmin();
     window.location.reload();
   };
 
@@ -1047,7 +1047,6 @@ export default function AdminLogin() {
       const result = await AuthService.login({ username, password });
       
       if (result.success && result.user) {
-        AuthService.saveSession(result.user);
         setIsAuthenticated(true);
       } else {
         setError(result.message || 'Erro ao fazer login');

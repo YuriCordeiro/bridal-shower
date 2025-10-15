@@ -1,5 +1,4 @@
 import { supabase, SupabaseAdminUser } from '@/lib/supabase';
-import bcrypt from 'bcryptjs';
 
 export interface LoginCredentials {
   username: string;
@@ -13,7 +12,7 @@ export interface AuthResponse {
 }
 
 export class AuthService {
-  // Fazer login
+  // Fazer login usando autenticação nativa do Supabase
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
       const { username, password } = credentials;
@@ -25,45 +24,51 @@ export class AuthService {
         };
       }
 
-      // Buscar usuário no Supabase
-      const { data: user, error } = await supabase
-        .from('admin_users')
-        .select('*')
-        .eq('username', username)
-        .single();
+      // Usar autenticação nativa do Supabase com email
+      // Para compatibilidade, vamos usar username@admin.local como email
+      const adminEmail = `${username}@admin.local`;
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: adminEmail,
+        password: password,
+      });
 
-      if (error || !user) {
+      if (error) {
+        console.error('Erro no login:', error);
         return {
           success: false,
-          message: 'Usuário não encontrado ou inativo'
+          message: 'Credenciais inválidas'
         };
       }
 
-      // Verificar senha
-      const isValidPassword = await bcrypt.compare(password, user.password_hash);
-
-      if (!isValidPassword) {
+      if (!data.user) {
         return {
           success: false,
-          message: 'Senha incorreta'
+          message: 'Falha na autenticação'
         };
       }
 
-      // Atualizar último login
-      await supabase
-        .from('admin_users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', user.id);
+      // Salvar dados do usuário no localStorage
+      const userData = {
+        id: data.user.id,
+        username: username,
+        email: adminEmail,
+        created_at: data.user.created_at,
+        last_login: new Date().toISOString()
+      };
 
-      // Remover hash da senha antes de retornar
-      const { password_hash: _, ...userWithoutPassword } = user;
+      localStorage.setItem('adminAuth', JSON.stringify({
+        isAuthenticated: true,
+        user: userData,
+        token: data.session?.access_token,
+        expiresAt: data.session?.expires_at
+      }));
 
       return {
         success: true,
-        user: userWithoutPassword,
+        user: userData as SupabaseAdminUser,
         message: 'Login realizado com sucesso'
       };
-
     } catch (error) {
       console.error('Erro no login:', error);
       return {
@@ -73,7 +78,7 @@ export class AuthService {
     }
   }
 
-  // Verificar se usuário está logado (usando localStorage)
+  // Verificar se usuário está logado
   static isAuthenticated(): boolean {
     if (typeof window === 'undefined') return false;
     
@@ -81,24 +86,20 @@ export class AuthService {
     if (!authData) return false;
 
     try {
-      const { expiry } = JSON.parse(authData);
-      return Date.now() < expiry;
+      const parsed = JSON.parse(authData);
+      const { isAuthenticated, expiresAt } = parsed;
+      
+      // Verificar se ainda está válido
+      if (expiresAt && Date.now() > expiresAt * 1000) {
+        this.logout();
+        return false;
+      }
+      
+      return isAuthenticated === true;
     } catch {
+      this.logout();
       return false;
     }
-  }
-
-  // Salvar sessão no localStorage
-  static saveSession(user: SupabaseAdminUser): void {
-    if (typeof window === 'undefined') return;
-
-    const sessionData = {
-      user,
-      expiry: Date.now() + (24 * 60 * 60 * 1000), // 24 horas
-      loginTime: Date.now()
-    };
-
-    localStorage.setItem('adminAuth', JSON.stringify(sessionData));
   }
 
   // Obter dados do usuário da sessão
@@ -109,73 +110,90 @@ export class AuthService {
     if (!authData) return null;
 
     try {
-      const { user, expiry } = JSON.parse(authData);
-      if (Date.now() >= expiry) {
+      const parsed = JSON.parse(authData);
+      const { user, isAuthenticated, expiresAt } = parsed;
+      
+      // Verificar se ainda está válido
+      if (expiresAt && Date.now() > expiresAt * 1000) {
         this.logout();
         return null;
       }
-      return user;
+      
+      return isAuthenticated ? user : null;
     } catch {
+      this.logout();
       return null;
     }
   }
 
   // Fazer logout
-  static logout(): void {
+  static async logout(): Promise<void> {
     if (typeof window === 'undefined') return;
+    
+    // Fazer logout do Supabase também
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Erro ao fazer logout do Supabase:', error);
+    }
+    
     localStorage.removeItem('adminAuth');
   }
 
-  // Criar novo usuário administrativo (só para outros admins)
+  // Criar novo usuário administrativo (usar com cuidado - apenas para setup inicial)
   static async createUser(userData: {
     username: string;
     password: string;
-    name: string;
   }): Promise<AuthResponse> {
     try {
       const { username, password } = userData;
 
-      // Verificar se usuário já existe
-      const { data: existingUser } = await supabase
-        .from('admin_users')
-        .select('username')
-        .eq('username', username)
-        .single();
-
-      if (existingUser) {
+      if (!username || !password) {
         return {
           success: false,
-          message: 'Nome de usuário já existe'
+          message: 'Usuário e senha são obrigatórios'
         };
       }
 
-      // Gerar hash da senha
-      const saltRounds = 10;
-      const password_hash = await bcrypt.hash(password, saltRounds);
+      // Criar usuário usando autenticação nativa do Supabase
+      const adminEmail = `${username}@admin.local`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: adminEmail,
+        password: password,
+        options: {
+          data: {
+            username: username,
+            role: 'admin'
+          }
+        }
+      });
 
-      // Criar usuário
-      const { data: newUser, error } = await supabase
-        .from('admin_users')
-        .insert([{
-          username,
-          password_hash,
-        }])
-        .select()
-        .single();
-
-      if (error || !newUser) {
+      if (error) {
+        console.error('Erro ao criar usuário:', error);
         return {
           success: false,
-          message: 'Erro ao criar usuário'
+          message: error.message || 'Erro ao criar usuário'
         };
       }
 
-      // Remover hash da senha antes de retornar
-      const { password_hash: _, ...userWithoutPassword } = newUser;
+      if (!data.user) {
+        return {
+          success: false,
+          message: 'Falha ao criar usuário'
+        };
+      }
+
+      const newUser = {
+        id: data.user.id,
+        username: username,
+        email: adminEmail,
+        created_at: data.user.created_at
+      };
 
       return {
         success: true,
-        user: userWithoutPassword,
+        user: newUser as SupabaseAdminUser,
         message: 'Usuário criado com sucesso'
       };
 
@@ -195,7 +213,7 @@ export class AuthService {
     newPassword: string
   ): Promise<AuthResponse> {
     try {
-      // Verificar senha atual
+      // Verificar senha atual fazendo login
       const loginResult = await this.login({ username, password: currentPassword });
       
       if (!loginResult.success) {
@@ -205,17 +223,13 @@ export class AuthService {
         };
       }
 
-      // Gerar hash da nova senha
-      const saltRounds = 10;
-      const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
-
-      // Atualizar senha no banco
-      const { error } = await supabase
-        .from('admin_users')
-        .update({ password_hash: newPasswordHash })
-        .eq('username', username);
+      // Alterar senha usando a API do Supabase
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
 
       if (error) {
+        console.error('Erro ao alterar senha:', error);
         return {
           success: false,
           message: 'Erro ao alterar senha'
@@ -236,20 +250,14 @@ export class AuthService {
     }
   }
 
-  // Listar todos os usuários (para gerenciamento)
+  // Listar todos os usuários (para gerenciamento) - Funcionalidade desabilitada devido ao RLS
   static async getAllUsers(): Promise<SupabaseAdminUser[]> {
     try {
-      const { data: users, error } = await supabase
-        .from('admin_users')
-        .select('id, username, created_at, last_login')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Erro ao buscar usuários:', error);
-        return [];
-      }
-
-      return users || [];
+      // Como o RLS bloqueia acesso direto à tabela admin_users,
+      // esta funcionalidade precisa ser implementada via Supabase Auth Admin API
+      // ou através de uma função do servidor/Edge Function
+      console.warn('getAllUsers: Funcionalidade desabilitada devido às políticas RLS');
+      return [];
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
       return [];
