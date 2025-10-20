@@ -1,6 +1,33 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+
+// Estilos para animações customizadas
+const styles = `
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideIn {
+    from { 
+      opacity: 0; 
+      transform: scale(0.9) translateY(-20px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: scale(1) translateY(0); 
+    }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  .animate-slideIn {
+    animation: slideIn 0.3s ease-out;
+  }
+`;
 import { useRouter } from 'next/navigation';
 import { 
   Users, 
@@ -22,7 +49,8 @@ import {
   Lock,
   User,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Check
 } from 'lucide-react';
 import { GuestService } from '@/services/guestService';
 import { RSVPService } from '@/services/rsvpService';
@@ -314,18 +342,43 @@ function GiftModal({
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="isAvailable"
-                checked={formData.isAvailable}
-                onChange={(e) => setFormData({ ...formData, isAvailable: e.target.checked })}
-                className="w-4 h-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500"
-              />
-              <label htmlFor="isAvailable" className="text-sm font-medium text-gray-700">
-                Produto disponível para escolha
+            {/* <div className="bg-gray-50 p-4 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Status de Disponibilidade
               </label>
-            </div>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, isAvailable: true })}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    formData.isAvailable
+                      ? 'bg-green-500 text-white shadow-md'
+                      : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <Eye className="w-4 h-4" />
+                  Disponível
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, isAvailable: false })}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    !formData.isAvailable
+                      ? 'bg-red-500 text-white shadow-md'
+                      : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <EyeOff className="w-4 h-4" />
+                  Indisponível
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {formData.isAvailable 
+                  ? 'O presente estará visível e selecionável pelos convidados'
+                  : 'O presente ficará oculto e não poderá ser selecionado'
+                }
+              </p>
+            </div> */}
             
             <div className="flex items-center gap-3 pt-4">
               <button
@@ -350,12 +403,179 @@ function GiftModal({
   );
 }
 
+// Componente Toast para notificações rápidas
+function Toast({ 
+  message, 
+  type = 'success', 
+  isVisible, 
+  onClose 
+}: {
+  message: string;
+  type?: 'success' | 'error' | 'info';
+  isVisible: boolean;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, onClose]);
+
+  if (!isVisible) return null;
+
+  const getToastColors = () => {
+    switch (type) {
+      case 'error':
+        return 'bg-red-500 text-white';
+      case 'info':
+        return 'bg-blue-500 text-white';
+      default:
+        return 'bg-green-500 text-white';
+    }
+  };
+
+  return (
+    <div className="fixed top-4 right-4 z-50 animate-slideIn">
+      <div className={`${getToastColors()} px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 max-w-md`}>
+        {type === 'success' && <Check className="w-5 h-5" />}
+        {type === 'error' && <Trash2 className="w-5 h-5" />}
+        {type === 'info' && <Eye className="w-5 h-5" />}
+        <span className="font-medium">{message}</span>
+        <button
+          onClick={onClose}
+          className="ml-4 text-white hover:text-gray-200 transition-colors"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Modal de confirmação personalizado
+function ConfirmModal({ 
+  isOpen, 
+  title, 
+  message, 
+  onConfirm, 
+  onCancel,
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
+  type = 'warning'
+}: {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  type?: 'danger' | 'warning' | 'info';
+}) {
+  if (!isOpen) return null;
+
+  const getIconAndColors = () => {
+    switch (type) {
+      case 'danger':
+        return {
+          icon: <Trash2 className="w-8 h-8 text-red-600" />,
+          bgColor: 'bg-red-100',
+          buttonColor: 'bg-red-600 hover:bg-red-700 focus:ring-red-500 shadow-lg hover:shadow-xl',
+          iconBg: 'bg-red-100 animate-pulse'
+        };
+      case 'info':
+        return {
+          icon: <Check className="w-8 h-8 text-green-600" />,
+          bgColor: 'bg-green-100',
+          buttonColor: 'bg-green-600 hover:bg-green-700 focus:ring-green-500 shadow-lg hover:shadow-xl',
+          iconBg: 'bg-green-100'
+        };
+      default: // warning
+        return {
+          icon: <EyeOff className="w-8 h-8 text-orange-600" />,
+          bgColor: 'bg-orange-100',
+          buttonColor: 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500 shadow-lg hover:shadow-xl',
+          iconBg: 'bg-orange-100'
+        };
+    }
+  };
+
+  const { icon, buttonColor, iconBg } = getIconAndColors();
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fadeIn">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl transform animate-slideIn">
+        <div className="p-6">
+          {/* Ícone */}
+          <div className="flex items-center justify-center mb-4">
+            <div className={`${iconBg} p-3 rounded-full`}>
+              {icon}
+            </div>
+          </div>
+          
+          {/* Título */}
+          <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+            {title}
+          </h3>
+          
+          {/* Mensagem */}
+          <div className="text-gray-600 text-center mb-6 whitespace-pre-line">
+            {message.split('**').map((part, index) => 
+              index % 2 === 0 ? (
+                <span key={index}>{part}</span>
+              ) : (
+                <strong key={index} className="font-bold text-gray-900">{part}</strong>
+              )
+            )}
+          </div>
+          
+          {/* Botões */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <button
+              onClick={onCancel}
+              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105"
+            >
+              {cancelText}
+            </button>
+            <button
+              onClick={onConfirm}
+              className={`flex-1 px-6 py-3 text-white font-medium rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 ${buttonColor}`}
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'rsvps' | 'gifts'>('rsvps');
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
   const [gifts, setGifts] = useState<AdminGift[]>([]);
   const [showGiftModal, setShowGiftModal] = useState(false);
   const [editingGift, setEditingGift] = useState<AdminGift | null>(null);
+  
+  // Estados para o modal de confirmação
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmData, setConfirmData] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    type?: 'danger' | 'warning' | 'info';
+  } | null>(null);
+
+  // Estados para toast
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
+  const [showToast, setShowToast] = useState(false);
   
   // Estados para drag and drop
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -366,6 +586,41 @@ function AdminDashboard() {
   const [giftFilter, setGiftFilter] = useState<'all' | 'available' | 'reserved'>('all');
   
   const router = useRouter();
+
+  // Função utilitária para mostrar confirmações
+  const showConfirmation = (
+    title: string, 
+    message: string, 
+    onConfirm: () => void,
+    type: 'danger' | 'warning' | 'info' = 'warning',
+    confirmText: string = 'Confirmar',
+    cancelText: string = 'Cancelar'
+  ) => {
+    setConfirmData({
+      title,
+      message,
+      onConfirm: () => {
+        setShowConfirmModal(false);
+        setConfirmData(null);
+        onConfirm();
+      },
+      onCancel: () => {
+        setShowConfirmModal(false);
+        setConfirmData(null);
+      },
+      confirmText,
+      cancelText,
+      type
+    });
+    setShowConfirmModal(true);
+  };
+
+  // Função utilitária para mostrar toast
+  const showToastMessage = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+  };
 
   useEffect(() => {
     console.log(' Iniciando carregamento dos dados do dashboard...');
@@ -404,14 +659,27 @@ function AdminDashboard() {
   };
 
   const handleDeleteRSVP = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta confirmação?')) {
+    const rsvp = rsvps.find(r => r.id === id);
+    const guestName = rsvp?.name || 'esta confirmação';
+    
+    const executeDelete = async () => {
       const success = await deleteRSVP(id);
       if (success) {
         await loadRSVPsWithCompanions();
+        showToastMessage(`Confirmação de "${guestName}" foi excluída com sucesso.`, 'success');
       } else {
-        alert('Erro ao excluir confirmação. Tente novamente.');
+        showToastMessage('Erro ao excluir confirmação. Tente novamente.', 'error');
       }
-    }
+    };
+
+    showConfirmation(
+      'Excluir Confirmação',
+      `Tem certeza que deseja excluir a confirmação de "${guestName}"?\n\nEsta ação não pode ser desfeita.`,
+      executeDelete,
+      'danger',
+      'Excluir',
+      'Cancelar'
+    );
   };
 
   const toggleRSVPExpansion = (id: string) => {
@@ -425,15 +693,29 @@ function AdminDashboard() {
   };
 
   const handleDeleteGift = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este presente?')) {
+    const gift = gifts.find(g => g.id === id);
+    const giftName = gift?.name || 'este presente';
+    
+    const executeDelete = async () => {
       try {
         await GiftService.deleteGift(id);
         await loadGiftData();
+        
+        showToastMessage(`Presente "${giftName}" foi excluído com sucesso.`, 'success');
       } catch (error) {
         console.error('Erro ao excluir presente:', error);
-        alert('Erro ao excluir presente. Tente novamente.');
+        showToastMessage('Erro ao excluir presente. Tente novamente.', 'error');
       }
-    }
+    };
+
+    showConfirmation(
+      'Excluir Presente',
+      `Tem certeza que deseja excluir o presente "${giftName}"?\n\nEsta ação não pode ser desfeita.`,
+      executeDelete,
+      'danger',
+      'Excluir',
+      'Cancelar'
+    );
   };
 
   const handleEditGift = (gift: AdminGift) => {
@@ -452,16 +734,41 @@ function AdminDashboard() {
     setEditingGift(null);
   };
 
-  const toggleGiftAvailability = async (gift: AdminGift) => {
-    try {
-      await GiftService.updateGift(gift.id, {
-        purchased: !gift.isReserved
-      });
-      await loadGiftData();
-    } catch (error) {
-      console.error('Erro ao atualizar disponibilidade do presente:', error);
-      alert('Erro ao atualizar presente. Tente novamente.');
-    }
+  const handleToggleGiftAvailability = async (gift: AdminGift) => {
+    console.log('🔄 Solicitando alteração de disponibilidade:', gift.name, 'Reservado:', gift.isReserved);
+    
+    // Se o presente estiver reservado, permitir "disponibilizar novamente"
+    const action = gift.isReserved ? 'disponibilizar novamente' : 'marcar como comprado';
+    const newStatus = gift.isReserved ? 'DISPONÍVEL' : 'COMPRADO';
+    const type = gift.isReserved ? 'info' : 'warning';
+    
+    const title = gift.isReserved ? 'Disponibilizar Presente' : 'Marcar como Comprado';
+    const message = `Deseja ${action} o presente "${gift.name}"?\n\nStatus atual: ${gift.isReserved ? 'COMPRADO' : 'DISPONÍVEL'}\n**Novo status: ${newStatus}**`;
+    
+    const executeAction = async () => {
+      try {
+        console.log('✅ Usuário confirmou. Alterando status...');
+        
+        await GiftService.updateGift(gift.id, {
+          purchased: !gift.isReserved
+        });
+        await loadGiftData();
+
+        const successMessage = gift.isReserved
+          ? `Presente "${gift.name}" foi disponibilizado novamente com sucesso!`
+          : `Presente "${gift.name}" foi marcado como "reservado" com sucesso!`;
+        
+        console.log('✅', successMessage);
+        
+        // Mostrar toast de sucesso
+        showToastMessage(successMessage, 'success');
+      } catch (error) {
+        console.error('Erro ao atualizar disponibilidade do presente:', error);
+        showToastMessage('Erro ao atualizar presente. Tente novamente.', 'error');
+      }
+    };
+
+    showConfirmation(title, message, executeAction, type, 'Confirmar', 'Cancelar');
   };
 
   // Funções de drag and drop
@@ -938,15 +1245,28 @@ function AdminDashboard() {
                           </div>
                           
                           <div className="flex items-center space-x-3">
-                            {gift.isReserved && (
-                              <button
-                                onClick={() => toggleGiftAvailability(gift)}
-                                className="p-3 rounded-lg transition-all duration-200 touch-manipulation border bg-orange-50 text-orange-600 hover:bg-orange-100 active:bg-orange-200 border-orange-200 shadow-sm hover:shadow-md active:scale-95 hover:border-orange-300"
-                                title="Disponibilizar presente novamente"
-                              >
-                                <Gift className="w-5 h-5" />
-                              </button>
-                            )}
+                            {/* Botão para alterar status do presente */}
+                            <button
+                              onClick={() => handleToggleGiftAvailability(gift)}
+                              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 shadow-sm ${
+                                gift.isReserved 
+                                  ? 'bg-green-500 text-white hover:bg-green-600 hover:shadow-md' 
+                                  : 'bg-red-500 text-white hover:bg-red-600 hover:shadow-md'
+                              }`}
+                              title={gift.isReserved ? 'Clique para remover a reserva e disponibilizar novamente' : 'Clique para marcar como comprado'}
+                            >
+                              {gift.isReserved ? (
+                                <>
+                                  <Eye className="w-4 h-4" />
+                                  Tornar Disponível
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff className="w-4 h-4" />
+                                  Marcar Comprado
+                                </>
+                              )}
+                            </button>
                             
                             <button
                               onClick={() => handleEditGift(gift)}
@@ -1015,6 +1335,31 @@ function AdminDashboard() {
           onCancel={handleCancelGift}
         />
       )}
+
+      {/* Modal de confirmação personalizado */}
+      {showConfirmModal && confirmData && (
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          title={confirmData.title}
+          message={confirmData.message}
+          onConfirm={confirmData.onConfirm}
+          onCancel={confirmData.onCancel}
+          confirmText={confirmData.confirmText}
+          cancelText={confirmData.cancelText}
+          type={confirmData.type}
+        />
+      )}
+
+      {/* Toast de notificação */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+      />
+
+      {/* Estilos para animações */}
+      <style jsx>{styles}</style>
     </div>
   );
 }
