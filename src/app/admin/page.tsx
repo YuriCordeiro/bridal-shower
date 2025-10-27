@@ -50,13 +50,17 @@ import {
   User,
   ArrowUp,
   ArrowDown,
-  Check
+  Check,
+  MessageSquare,
+  Mail,
+  Clock
 } from 'lucide-react';
 import { GuestService } from '@/services/guestService';
 import { RSVPService } from '@/services/rsvpService';
 import { AuthService } from '@/services/authService';
 import { GiftService } from '@/services/giftService';
-import { SupabaseGuest, SupabaseRSVP, SupabaseGift } from '@/lib/supabase';
+import { MessageService } from '@/services/messageService';
+import { SupabaseGuest, SupabaseRSVP, SupabaseGift, SupabaseMessage } from '@/lib/supabase';
 
 // Tipos locais para evitar problemas de importação
 interface RSVP extends SupabaseRSVP {
@@ -554,9 +558,10 @@ function ConfirmModal({
 }
 
 function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'rsvps' | 'gifts'>('rsvps');
+  const [activeTab, setActiveTab] = useState<'rsvps' | 'gifts' | 'messages'>('rsvps');
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
   const [gifts, setGifts] = useState<AdminGift[]>([]);
+  const [messages, setMessages] = useState<SupabaseMessage[]>([]);
   const [showGiftModal, setShowGiftModal] = useState(false);
   const [editingGift, setEditingGift] = useState<AdminGift | null>(null);
   
@@ -626,6 +631,7 @@ function AdminDashboard() {
     console.log(' Iniciando carregamento dos dados do dashboard...');
     loadRSVPsWithCompanions();
     loadGiftData();
+    loadMessages();
   }, []);
 
   const loadGiftData = async () => {
@@ -652,6 +658,17 @@ function AdminDashboard() {
       setRsvps(rsvpsWithCompanions);
     } catch (error) {
       console.error('? Erro ao carregar RSVPs com acompanhantes:', error);
+    }
+  };
+
+  const loadMessages = async () => {
+    try {
+      console.log('📬 Carregando mensagens...');
+      const messagesData = await MessageService.getAllMessages();
+      console.log('📬 Mensagens encontradas:', messagesData.length, messagesData);
+      setMessages(messagesData);
+    } catch (error) {
+      console.error('📬 Erro ao carregar mensagens:', error);
     }
   };  const handleLogout = async () => {
     await logoutAdmin();
@@ -914,7 +931,7 @@ function AdminDashboard() {
 
       {/* Stats Cards */}
       <section className="px-4 mb-6 sm:mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -950,6 +967,18 @@ function AdminDashboard() {
               </div>
             </div>
           </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Mensagens</p>
+                <p className="text-2xl font-bold text-gray-900">{messages.length}</p>
+              </div>
+              <div className="p-3 bg-pink-100 rounded-lg">
+                <MessageSquare className="w-6 h-6 text-pink-600" />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -976,6 +1005,16 @@ function AdminDashboard() {
                 }`}
               >
                 Lista de Presentes ({gifts.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('messages')}
+                className={`flex-1 py-3 px-6 rounded-xl font-medium text-sm transition-all ${
+                  activeTab === 'messages'
+                    ? 'bg-gray-700 text-white shadow-md'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                }`}
+              >
+                Mensagens ({messages.length})
               </button>
             </nav>
           </div>
@@ -1324,6 +1363,77 @@ function AdminDashboard() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'messages' && (
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Mensagens dos Convidados
+              </h3>
+              <p className="text-gray-600 text-sm mt-1">
+                Mensagens enviadas pelos convidados durante a confirmação de presença
+              </p>
+            </div>
+
+            {messages.length === 0 ? (
+              <div className="text-center py-12">
+                <Mail className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-600 mb-2">
+                  Nenhuma mensagem ainda
+                </h3>
+                <p className="text-gray-500">
+                  As mensagens dos convidados aparecerão aqui conforme eles confirmarem presença.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className="bg-gray-50 border border-gray-200 rounded-xl p-4 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center text-sm font-medium">
+                          {message.sender_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-800">
+                            {message.sender_name}
+                          </h4>
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <Clock className="w-3 h-3" />
+                            {message.created_at 
+                              ? new Date(message.created_at).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              : 'Data não disponível'
+                            }
+                          </div>
+                        </div>
+                      </div>
+                      {message.id?.startsWith('rsvp_') && (
+                        <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
+                          RSVP
+                        </span>
+                      )}
+                    </div>
+                    <div className="ml-10">
+                      <p className="text-gray-700 leading-relaxed">
+                        {message.message}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

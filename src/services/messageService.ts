@@ -1,23 +1,91 @@
-import { supabase, SupabaseMessage } from '@/lib/supabase';
+import { supabase, SupabaseMessage, SupabaseRSVP } from '@/lib/supabase';
 
 export class MessageService {
-  // Buscar todas as mensagens
+  // Buscar todas as mensagens (incluindo de RSVPs)
   static async getAllMessages(): Promise<SupabaseMessage[]> {
     try {
-      const { data, error } = await supabase
+      const messages: SupabaseMessage[] = [];
+
+      // Buscar mensagens das confirmações de presença (RSVPs)
+      const { data: rsvps, error: rsvpError } = await supabase
+        .from('rsvps')
+        .select('id, name, last_name, message, created_at')
+        .not('message', 'is', null)
+        .not('message', 'eq', '')
+        .order('created_at', { ascending: false });
+
+      if (rsvpError) {
+        console.error('Erro ao buscar mensagens dos RSVPs:', rsvpError);
+      } else if (rsvps) {
+        // Converter RSVPs para formato de mensagem
+        const rsvpMessages = rsvps.map(rsvp => ({
+          id: `rsvp_${rsvp.id}`,
+          sender_name: `${rsvp.name} ${rsvp.last_name}`,
+          message: rsvp.message || '',
+          created_at: rsvp.created_at
+        }));
+        messages.push(...rsvpMessages);
+      }
+
+      // Buscar mensagens da tabela dedicada (se existir)
+      const { data: directMessages, error: messageError } = await supabase
         .from('messages')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Erro ao buscar mensagens:', error);
-        return [];
+      if (messageError && messageError.code !== 'PGRST116') {
+        // PGRST116 = table not found, isso é OK se a tabela não existir
+        console.error('Erro ao buscar mensagens diretas:', messageError);
+      } else if (directMessages) {
+        messages.push(...directMessages);
       }
 
-      return data || [];
+      // Ordenar todas as mensagens por data
+      return messages.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0);
+        const dateB = new Date(b.created_at || 0);
+        return dateB.getTime() - dateA.getTime();
+      });
+
     } catch (error) {
       console.error('Erro ao buscar mensagens:', error);
       return [];
+    }
+  }
+
+  // Buscar estatísticas das mensagens
+  static async getMessageStats(): Promise<{
+    total: number;
+    fromRSVPs: number;
+    fromDirect: number;
+    thisWeek: number;
+  }> {
+    try {
+      const allMessages = await this.getAllMessages();
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      const fromRSVPs = allMessages.filter(msg => msg.id?.startsWith('rsvp_')).length;
+      const fromDirect = allMessages.filter(msg => !msg.id?.startsWith('rsvp_')).length;
+      const thisWeek = allMessages.filter(msg => {
+        const msgDate = new Date(msg.created_at || 0);
+        return msgDate >= oneWeekAgo;
+      }).length;
+
+      return {
+        total: allMessages.length,
+        fromRSVPs,
+        fromDirect,
+        thisWeek
+      };
+    } catch (error) {
+      console.error('Erro ao calcular estatísticas de mensagens:', error);
+      return {
+        total: 0,
+        fromRSVPs: 0,
+        fromDirect: 0,
+        thisWeek: 0
+      };
     }
   }
 
@@ -101,48 +169,6 @@ export class MessageService {
     } catch (error) {
       console.error('Erro ao buscar mensagens recentes:', error);
       return [];
-    }
-  }
-
-  // Estatísticas das mensagens
-  static async getMessageStats(): Promise<{
-    total: number;
-    today: number;
-    thisWeek: number;
-  }> {
-    try {
-      const messages = await this.getAllMessages();
-      
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      weekAgo.setHours(0, 0, 0, 0);
-
-      const todayMessages = messages.filter(m => {
-        const messageDate = new Date(m.created_at!);
-        messageDate.setHours(0, 0, 0, 0);
-        return messageDate.getTime() === today.getTime();
-      });
-
-      const weekMessages = messages.filter(m => {
-        const messageDate = new Date(m.created_at!);
-        return messageDate >= weekAgo;
-      });
-
-      return {
-        total: messages.length,
-        today: todayMessages.length,
-        thisWeek: weekMessages.length
-      };
-    } catch (error) {
-      console.error('Erro ao calcular estatísticas:', error);
-      return {
-        total: 0,
-        today: 0,
-        thisWeek: 0
-      };
     }
   }
 }
