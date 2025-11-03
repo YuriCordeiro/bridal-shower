@@ -35,7 +35,22 @@ export class RSVPService {
         return [];
       }
 
-      return data || [];
+      // Dedupliciação por email ou combinação nome+sobrenome (caso haja duplicatas)
+      const uniqueRSVPs = new Map<string, SupabaseRSVP>();
+      
+      (data || []).forEach(rsvp => {
+        const key = rsvp.id || `${rsvp.name}_${rsvp.last_name}`.toLowerCase();
+        
+        // Se não existe no mapa ou se o atual é mais recente, adiciona/substitui
+        if (!uniqueRSVPs.has(key) || 
+            new Date(rsvp.created_at || 0) > new Date(uniqueRSVPs.get(key)?.created_at || 0)) {
+          uniqueRSVPs.set(key, rsvp);
+        }
+      });
+
+      return Array.from(uniqueRSVPs.values()).sort((a, b) => 
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
     } catch (error) {
       console.error('Erro ao buscar RSVPs:', error);
       return [];

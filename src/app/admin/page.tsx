@@ -79,7 +79,7 @@ interface AdminGift {
   isAvailable: boolean;
   reservedBy?: string;
   reservedAt?: string;
-  order: number;
+  order_index: number;
 }
 
 // Funções auxiliares locais
@@ -131,20 +131,20 @@ const convertToAdminGift = (gift: SupabaseGift): AdminGift => {
     isAvailable: !gift.purchased,
     reservedBy: gift.reserved_by_name,
     reservedAt: gift.purchased ? gift.created_at : undefined,
-    order: gift.order_index || 0
+    order_index: gift.order_index || 0
   };
 };
 
 
 // Modal para adicionar/editar presente
 function GiftModal({ 
-  gift,
+  gift, 
   onSave, 
   onCancel 
 }: { 
-  gift?: AdminGift;
+  gift?: AdminGift; 
   onSave: () => void; 
-  onCancel: () => void;
+  onCancel: () => void; 
 }) {
   const [formData, setFormData] = useState({
     name: gift?.name || '',
@@ -154,11 +154,10 @@ function GiftModal({
     image: gift?.image || '',
     link: gift?.link || '',
     isAvailable: gift?.isAvailable ?? true,
-    order: gift?.order?.toString() || ''
+    order: gift?.order_index?.toString() || ''
   });
   const [imagePreview, setImagePreview] = useState<string>(gift?.image || '');
-
-  const categories = [
+  const [isSubmitting, setIsSubmitting] = useState(false);  const categories = [
     'Cozinha',
     'Eletrodomésticos',
     'Outros'
@@ -180,6 +179,10 @@ function GiftModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Prevenir múltiplos submits
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    
     try {
       if (gift) {
         // Atualizar presente existente
@@ -194,7 +197,7 @@ function GiftModal({
         };
         
         // Só atualizar order_index se foi alterado
-        if (formData.order && parseInt(formData.order) !== gift.order) {
+        if (formData.order && parseInt(formData.order) !== gift.order_index) {
           updateData.order_index = parseInt(formData.order);
         }
         
@@ -216,6 +219,8 @@ function GiftModal({
     } catch (error) {
       console.error('Erro ao salvar presente:', error);
       alert('Erro ao salvar presente. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -387,15 +392,17 @@ function GiftModal({
             <div className="flex items-center gap-3 pt-4">
               <button
                 type="submit"
-                className="px-6 py-3 bg-gray-700 text-white font-medium rounded-xl hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                disabled={isSubmitting}
+                className="px-6 py-3 bg-gray-700 text-white font-medium rounded-xl hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {gift ? 'Salvar Alterações' : 'Adicionar Presente'}
+                {isSubmitting ? 'Salvando...' : (gift ? 'Salvar Alterações' : 'Adicionar Presente')}
               </button>
               
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                disabled={isSubmitting}
+                className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancelar
               </button>
@@ -628,7 +635,6 @@ function AdminDashboard() {
   };
 
   useEffect(() => {
-    console.log(' Iniciando carregamento dos dados do dashboard...');
     loadRSVPsWithCompanions();
     loadGiftData();
     loadMessages();
@@ -642,33 +648,28 @@ function AdminDashboard() {
 
   const loadRSVPsWithCompanions = async () => {
     try {
-      console.log('?? Carregando RSVPs...');
       const rsvpsData = await getRSVPs();
-      console.log('?? RSVPs encontrados:', rsvpsData.length, rsvpsData);
       
       const rsvpsWithCompanions = await Promise.all(
         rsvpsData.map(async (rsvp) => {
           if (!rsvp.id) return { ...rsvp, companions: [] };
           const companions = await GuestService.getGuestsByRSVPId(rsvp.id);
-          console.log(`?? Acompanhantes para ${rsvp.name}:`, companions.length, companions);
           return { ...rsvp, companions };
         })
       );
-      console.log('? RSVPs com acompanhantes:', rsvpsWithCompanions);
       setRsvps(rsvpsWithCompanions);
     } catch (error) {
-      console.error('? Erro ao carregar RSVPs com acompanhantes:', error);
+      console.error('Erro ao carregar RSVPs com acompanhantes:', error);
     }
   };
 
   const loadMessages = async () => {
     try {
-      console.log('📬 Carregando mensagens...');
+      setMessages([]);
       const messagesData = await MessageService.getAllMessages();
-      console.log('📬 Mensagens encontradas:', messagesData.length, messagesData);
       setMessages(messagesData);
     } catch (error) {
-      console.error('📬 Erro ao carregar mensagens:', error);
+      console.error('Erro ao carregar mensagens:', error);
     }
   };  const handleLogout = async () => {
     await logoutAdmin();
@@ -752,8 +753,6 @@ function AdminDashboard() {
   };
 
   const handleToggleGiftAvailability = async (gift: AdminGift) => {
-    console.log('🔄 Solicitando alteração de disponibilidade:', gift.name, 'Reservado:', gift.isReserved);
-    
     // Se o presente estiver reservado, permitir "disponibilizar novamente"
     const action = gift.isReserved ? 'disponibilizar novamente' : 'marcar como comprado';
     const newStatus = gift.isReserved ? 'DISPONÍVEL' : 'COMPRADO';
@@ -764,8 +763,6 @@ function AdminDashboard() {
     
     const executeAction = async () => {
       try {
-        console.log('✅ Usuário confirmou. Alterando status...');
-        
         await GiftService.updateGift(gift.id, {
           purchased: !gift.isReserved
         });
@@ -775,9 +772,6 @@ function AdminDashboard() {
           ? `Presente "${gift.name}" foi disponibilizado novamente com sucesso!`
           : `Presente "${gift.name}" foi marcado como "reservado" com sucesso!`;
         
-        console.log('✅', successMessage);
-        
-        // Mostrar toast de sucesso
         showToastMessage(successMessage, 'success');
       } catch (error) {
         console.error('Erro ao atualizar disponibilidade do presente:', error);
@@ -1495,6 +1489,10 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevenir múltiplos submits
+    if (isLoading) return;
+    
     setIsLoading(true);
     setError('');
 
