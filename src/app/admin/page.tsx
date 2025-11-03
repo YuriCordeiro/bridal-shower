@@ -157,7 +157,23 @@ function GiftModal({
     order: gift?.order_index?.toString() || ''
   });
   const [imagePreview, setImagePreview] = useState<string>(gift?.image || '');
-  const [isSubmitting, setIsSubmitting] = useState(false);  const categories = [
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Event listener para fechar modal com ESC
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onCancel();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onCancel]);
+
+  const categories = [
     'Cozinha',
     'Eletrodomésticos',
     'Outros'
@@ -196,12 +212,21 @@ function GiftModal({
           purchased: gift.isReserved
         };
         
-        // Só atualizar order_index se foi alterado
+        // Se a ordem foi alterada, usar a função de troca de ordem
         if (formData.order && parseInt(formData.order) !== gift.order_index) {
-          updateData.order_index = parseInt(formData.order);
+          const newOrder = parseInt(formData.order);
+          // Primeiro trocar as ordens
+          const swapSuccess = await GiftService.swapGiftOrder(gift.id, newOrder);
+          if (!swapSuccess) {
+            alert('Erro ao trocar ordem dos presentes. Tente novamente.');
+            return;
+          }
+          // Depois atualizar os outros dados (sem order_index)
+          await GiftService.updateGift(gift.id, updateData);
+        } else {
+          // Se não mudou a ordem, só atualizar normalmente
+          await GiftService.updateGift(gift.id, updateData);
         }
-        
-        await GiftService.updateGift(gift.id, updateData);
       } else {
         // Criar novo presente
         await GiftService.createGift({

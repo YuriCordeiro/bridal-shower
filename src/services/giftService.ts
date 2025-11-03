@@ -106,6 +106,60 @@ export class GiftService {
     }
   }
 
+  // Trocar ordem entre dois presentes
+  static async swapGiftOrder(giftId: string, newOrder: number): Promise<boolean> {
+    try {
+      // Buscar o presente atual
+      const currentGift = await this.getGiftById(giftId);
+      if (!currentGift) {
+        console.error('Presente não encontrado:', giftId);
+        return false;
+      }
+
+      // Buscar o presente que está na posição de destino (se houver)
+      const { data: targetGift, error: targetError } = await supabase
+        .from('gifts')
+        .select('*')
+        .eq('order_index', newOrder)
+        .single();
+
+      if (targetError && targetError.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('Erro ao buscar presente na posição de destino:', targetError);
+        return false;
+      }
+
+      // Se há um presente na posição de destino, trocar as ordens
+      if (targetGift && targetGift.id !== currentGift.id) {
+        // Atualizar o presente de destino com a ordem atual
+        const { error: updateTargetError } = await supabase
+          .from('gifts')
+          .update({ order_index: currentGift.order_index })
+          .eq('id', targetGift.id);
+
+        if (updateTargetError) {
+          console.error('Erro ao atualizar ordem do presente de destino:', updateTargetError);
+          return false;
+        }
+      }
+
+      // Atualizar o presente atual com a nova ordem
+      const { error: updateCurrentError } = await supabase
+        .from('gifts')
+        .update({ order_index: newOrder })
+        .eq('id', currentGift.id);
+
+      if (updateCurrentError) {
+        console.error('Erro ao atualizar ordem do presente atual:', updateCurrentError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Erro ao trocar ordem dos presentes:', error);
+      return false;
+    }
+  }
+
   // Marcar presente como comprado
   static async markGiftAsPurchased(id: string): Promise<boolean> {
     try {

@@ -1,1 +1,32 @@
-﻿import { supabase, SupabaseMessage } from "@/lib/supabase"; export class MessageService { static async getAllMessages(): Promise<SupabaseMessage[]> { try { const messages: SupabaseMessage[] = []; const { data: allRsvps } = await supabase.from("rsvps").select("*"); if (allRsvps) { const rsvpsComMensagem = allRsvps.filter(rsvp => rsvp.message && rsvp.message.trim()); rsvpsComMensagem.forEach((rsvp) => { const senderName = `${rsvp.name} ${rsvp.last_name}`.trim(); const messageText = rsvp.message.trim(); messages.push({ id: `rsvp_${rsvp.id}`, sender_name: senderName, message: messageText, created_at: rsvp.created_at }); }); } return messages.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()); } catch (error) { console.error("Erro ao buscar mensagens:", error); return []; } } }
+﻿import { supabase, SupabaseMessage } from "@/lib/supabase";
+export class MessageService {
+  static async getAllMessages(): Promise<SupabaseMessage[]> {
+    try {
+      const messages: SupabaseMessage[] = [];
+      const { data: allRsvps } = await supabase.from("rsvps").select("*");
+      if (allRsvps) {
+        const rsvpsComMensagem = allRsvps.filter(
+          (rsvp) => rsvp.message && rsvp.message.trim()
+        );
+        rsvpsComMensagem.forEach((rsvp) => {
+          const senderName = `${rsvp.name} ${rsvp.last_name}`.trim();
+          const messageText = rsvp.message.trim();
+          messages.push({
+            id: `rsvp_${rsvp.id}`,
+            sender_name: senderName,
+            message: messageText,
+            created_at: rsvp.created_at,
+          });
+        });
+      }
+      return messages.sort(
+        (a, b) =>
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime()
+      );
+    } catch (error) {
+      console.error("Erro ao buscar mensagens:", error);
+      return [];
+    }
+  }
+}
