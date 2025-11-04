@@ -430,11 +430,19 @@ return (
             </div>
 
             <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Presente Reservado!
+              🥳 Presente Reservado!
             </h3>
             
             <p className="text-gray-600 mb-6">
               Parabéns! Você reservou este presente para o casal.
+            </p>
+
+            <p className="text-gray-600 mb-6">
+              👉🏻 A reserva garante que ninguém mais escolherá este item da lista, mas não finaliza a compra.
+            </p>
+
+            <p className="text-gray-600 mb-2">
+              🎁 Para concluir a compra e presentear os noivos, utilize o botão "Ver Produto na Loja" abaixo para ser direcionado(a) ao link da Shopee, ou adquira um produto similar em qualquer loja física ou online de sua preferência.
             </p>
             
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
