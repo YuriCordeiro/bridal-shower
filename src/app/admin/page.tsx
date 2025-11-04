@@ -48,6 +48,7 @@ import {
   Filter,
   Lock,
   User,
+  Power,
   ArrowUp,
   ArrowDown,
   Check,
@@ -80,6 +81,7 @@ interface AdminGift {
   reservedBy?: string;
   reservedAt?: string;
   order_index: number;
+  active: boolean;
 }
 
 // Funções auxiliares locais
@@ -131,7 +133,8 @@ const convertToAdminGift = (gift: SupabaseGift): AdminGift => {
     isAvailable: !gift.purchased,
     reservedBy: gift.reserved_by_name,
     reservedAt: gift.purchased ? gift.created_at : undefined,
-    order_index: gift.order_index || 0
+    order_index: gift.order_index || 0,
+    active: gift.active !== false // Default true se não especificado
   };
 };
 
@@ -237,6 +240,7 @@ function GiftModal({
           image: formData.image,
           link: formData.link,
           purchased: false,
+          active: true,
           order_index: formData.order ? parseInt(formData.order) : Date.now() // Usar order definido ou timestamp
         });
       }
@@ -761,6 +765,34 @@ function AdminDashboard() {
     );
   };
 
+  const handleToggleGiftStatus = async (gift: AdminGift) => {
+    const newStatus = !gift.active;
+    const action = newStatus ? 'ativar' : 'inativar';
+    const statusText = newStatus ? 'ativo' : 'inativo';
+    const visibilityStatusText = newStatus ? 'visível' : 'invisível';
+    
+    const executeToggle = async () => {
+      try {
+        await GiftService.toggleGiftActive(gift.id, newStatus);
+        await loadGiftData();
+        
+        showToastMessage(`Presente "${gift.name}" foi ${newStatus ? 'ativado' : 'inativado'} com sucesso.`, 'success');
+      } catch (error) {
+        console.error('Erro ao alterar status do presente:', error);
+        showToastMessage('Erro ao alterar status do presente. Tente novamente.', 'error');
+      }
+    };
+
+    showConfirmation(
+      `${action.charAt(0).toUpperCase() + action.slice(1)} Presente`,
+      `Tem certeza que deseja ${action} o presente "${gift.name}"?\n\nO presente ficará ${statusText} na lista atual e ${visibilityStatusText} na lista principal.`,
+      executeToggle,
+      'warning',
+      action.charAt(0).toUpperCase() + action.slice(1),
+      'Cancelar'
+    );
+  };
+
   const handleEditGift = (gift: AdminGift) => {
     setEditingGift(gift);
     setShowGiftModal(true);
@@ -1275,7 +1307,16 @@ function AdminDashboard() {
                               crossOrigin="anonymous"
                             />
                             <div>
-                              <h3 className="font-medium text-gray-900">{gift.name}</h3>
+                              <div className="flex items-center gap-2">
+                                <h3 className={`font-medium ${gift.active ? 'text-gray-900' : 'text-gray-500'}`}>
+                                  {gift.name}
+                                </h3>
+                                {!gift.active && (
+                                  <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full border">
+                                    INATIVO
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-gray-500">R$ {Number(gift.price || 0).toFixed(2)}</p>
                               {gift.link && (
                                 <a 
@@ -1327,8 +1368,20 @@ function AdminDashboard() {
                             </button>
                             
                             <button
+                              onClick={() => handleToggleGiftStatus(gift)}
+                              className={`p-3 rounded-lg transition-all duration-200 touch-manipulation border shadow-sm hover:shadow-md active:scale-95 ${
+                                gift.active 
+                                  ? 'bg-orange-50 text-orange-600 hover:bg-orange-100 active:bg-orange-200 border-orange-200 hover:border-orange-300'
+                                  : 'bg-green-50 text-green-600 hover:bg-green-100 active:bg-green-200 border-green-200 hover:border-green-300'
+                              }`}
+                              title={gift.active ? 'Inativar presente' : 'Ativar presente'}
+                            >
+                              <Power className="w-5 h-5" />
+                            </button>
+                            
+                            <button
                               onClick={() => handleEditGift(gift)}
-                              className="p-3 rounded-lg transition-all duration-200 touch-manipulation border bg-green-50 text-green-600 hover:bg-green-100 active:bg-green-200 border-green-200 shadow-sm hover:shadow-md active:scale-95 hover:border-green-300"
+                              className="p-3 rounded-lg transition-all duration-200 touch-manipulation border bg-blue-50 text-blue-600 hover:bg-blue-100 active:bg-blue-200 border-blue-200 shadow-sm hover:shadow-md active:scale-95 hover:border-blue-300"
                               title="Editar presente (incluindo posição)"
                             >
                               <Edit2 className="w-5 h-5" />

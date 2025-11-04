@@ -39,6 +39,7 @@ export interface SupabaseGift {
   link?: string;
   created_at?: string;
   reserved_by_name?: string;
+  active?: boolean;
 }
 
 export interface SupabaseEventInfo {

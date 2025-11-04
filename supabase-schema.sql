@@ -24,6 +24,7 @@ CREATE TABLE public.gifts (
     order_index INTEGER DEFAULT 0,
     category VARCHAR(100),
     link TEXT,
+    active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

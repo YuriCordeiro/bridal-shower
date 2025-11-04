@@ -41,11 +41,11 @@ export default function Presentes() {
   };
 
   useEffect(() => {
-    // Carregar presentes do Supabase
+    // Carregar presentes ativos do Supabase
     const loadGifts = async () => {
       try {
         setLoading(true);
-        const giftsData = await GiftService.getAllGifts();
+        const giftsData = await GiftService.getActiveGifts();
         setGifts(giftsData);
       } catch (error) {
         console.error('Erro ao carregar presentes:', error);
@@ -105,7 +105,7 @@ export default function Presentes() {
         });
         
         // Atualizar a lista local
-        const giftsData = await GiftService.getAllGifts();
+        const giftsData = await GiftService.getActiveGifts();
         setGifts(giftsData);
         
         // Guardar o presente reservado para exibir no modal de sucesso

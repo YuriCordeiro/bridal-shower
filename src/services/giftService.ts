@@ -1,7 +1,7 @@
 import { supabase, SupabaseGift } from '@/lib/supabase';
 
 export class GiftService {
-  // Buscar todos os presentes
+  // Buscar todos os presentes (incluindo inativos) - para admin
   static async getAllGifts(): Promise<SupabaseGift[]> {
     try {
       const { data, error } = await supabase
@@ -17,6 +17,27 @@ export class GiftService {
       return data || [];
     } catch (error) {
       console.error('Erro ao buscar presentes:', error);
+      return [];
+    }
+  }
+
+  // Buscar apenas presentes ativos - para página pública
+  static async getActiveGifts(): Promise<SupabaseGift[]> {
+    try {
+      const { data, error } = await supabase
+        .from('gifts')
+        .select('*')
+        .eq('active', true)
+        .order('order_index', { ascending: true });
+
+      if (error) {
+        console.error('Erro ao buscar presentes ativos:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar presentes ativos:', error);
       return [];
     }
   }
@@ -196,6 +217,26 @@ export class GiftService {
       return true;
     } catch (error) {
       console.error('Erro ao deletar presente:', error);
+      return false;
+    }
+  }
+
+  // Ativar/Inativar presente
+  static async toggleGiftActive(id: string, active: boolean): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('gifts')
+        .update({ active })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erro ao alterar status do presente:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Erro ao alterar status do presente:', error);
       return false;
     }
   }
