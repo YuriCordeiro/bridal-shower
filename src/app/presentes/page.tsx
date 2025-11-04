@@ -15,6 +15,8 @@ export default function Presentes() {
   const [showReserveModal, setShowReserveModal] = useState(false);
   const [selectedGift, setSelectedGift] = useState<SupabaseGift | null>(null);
   const [reserverName, setReserverName] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [reservedGift, setReservedGift] = useState<SupabaseGift | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
   const itemsPerPage = 10;
@@ -106,12 +108,14 @@ export default function Presentes() {
         const giftsData = await GiftService.getAllGifts();
         setGifts(giftsData);
         
-        // Fecha o modal
+        // Guardar o presente reservado para exibir no modal de sucesso
+        setReservedGift(selectedGift);
+        
+        // Fecha o modal de reserva e abre o modal de sucesso
         setShowReserveModal(false);
+        setShowSuccessModal(true);
         setSelectedGift(null);
         setReserverName('');
-        
-        alert('Presente reservado com sucesso!');
       } catch (error) {
         console.error('Erro ao reservar presente:', error);
         alert('Erro ao reservar presente. Tente novamente.');
@@ -123,6 +127,17 @@ const cancelReservation = () => {
   setShowReserveModal(false);
   setSelectedGift(null);
   setReserverName('');
+};
+
+const closeSuccessModal = () => {
+  setShowSuccessModal(false);
+  setReservedGift(null);
+};
+
+const openProductLink = () => {
+  if (reservedGift?.link) {
+    window.open(reservedGift.link, '_blank', 'noopener,noreferrer');
+  }
 };
 
 return (
@@ -397,6 +412,53 @@ return (
                 className="flex-1 px-4 py-3 bg-gray-800 text-white rounded-xl font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Confirmar Reserva
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Sucesso */}
+      {showSuccessModal && reservedGift && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center px-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md text-center">
+            {/* Ícone de sucesso */}
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Presente Reservado!
+            </h3>
+            
+            <p className="text-gray-600 mb-6">
+              Parabéns! Você reservou este presente para o casal.
+            </p>
+            
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-semibold text-gray-800">{reservedGift.name}</h4>
+              <p className="text-sm text-gray-600">{reservedGift.description}</p>
+              <p className="text-lg font-bold text-gray-800 mt-2">{formatCurrency(reservedGift.price)}</p>
+            </div>
+
+            <div className="space-y-3">
+              {reservedGift.link && (
+                <button
+                  onClick={openProductLink}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                >
+                  <ExternalLink className="w-5 h-5" />
+                  <span>Ver Produto na Loja</span>
+                </button>
+              )}
+              
+              <button
+                onClick={closeSuccessModal}
+                className="w-full px-4 py-3 bg-gray-800 text-white rounded-xl font-medium hover:bg-gray-700 transition-colors"
+              >
+                Continuar Navegando
               </button>
             </div>
           </div>
