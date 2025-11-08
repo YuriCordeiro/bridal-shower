@@ -203,7 +203,8 @@ export default function Home() {
                 <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
                 <div>
                   <p className="font-medium text-gray-800 text-sm sm:text-base">Local</p>
-                  <p className="text-gray-600 text-sm sm:text-base">{eventDetails.location}</p>
+                  <p className="text-gray-600 text-sm sm:text-base">Rua fictícia, 123</p>
+                  {/* <p className="text-gray-600 text-sm sm:text-base">{eventDetails.location}</p> */}
                   <p className="text-xs sm:text-sm text-gray-500">{eventDetails.address}</p>
                 </div>
               </div>
