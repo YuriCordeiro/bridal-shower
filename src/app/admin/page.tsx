@@ -705,6 +705,7 @@ function AdminDashboard() {
         exportData.push({
           'Nome Completo': `${rsvp.name} ${rsvp.last_name || ''}`.trim(),
           'CPF': rsvp.cpf || '',
+          'Telefone': rsvp.whatsapp || '',
           'Status da Confirmação': rsvp.attendance === 'sim' ? 'Confirmado' : 'Não Confirmado'
         });
         
@@ -714,6 +715,7 @@ function AdminDashboard() {
             exportData.push({
               'Nome Completo': `${companion.name} ${companion.last_name || ''}`.trim(),
               'CPF': companion.cpf || '',
+              'Telefone': companion.whatsapp || '',
               'Status da Confirmação': 'Confirmado'
             });
           });
@@ -734,6 +736,7 @@ function AdminDashboard() {
       const colWidths = [
         { wch: 30 }, // Nome Completo
         { wch: 18 }, // CPF
+        { wch: 18 }, // Telefone
         { wch: 20 }  // Status da Confirmação
       ];
       ws['!cols'] = colWidths;
