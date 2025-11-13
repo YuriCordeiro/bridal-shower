@@ -54,7 +54,8 @@ import {
   Check,
   MessageSquare,
   Mail,
-  Clock
+  Clock,
+  Download
 } from 'lucide-react';
 import { GuestService } from '@/services/guestService';
 import { RSVPService } from '@/services/rsvpService';
@@ -62,6 +63,7 @@ import { AuthService } from '@/services/authService';
 import { GiftService } from '@/services/giftService';
 import { MessageService } from '@/services/messageService';
 import { SupabaseGuest, SupabaseRSVP, SupabaseGift, SupabaseMessage } from '@/lib/supabase';
+import * as XLSX from 'xlsx';
 
 // Tipos locais para evitar problemas de importação
 interface RSVP extends SupabaseRSVP {
@@ -692,6 +694,64 @@ function AdminDashboard() {
     }
   };
 
+  // Função para exportar dados dos convidados em Excel
+  const exportGuestData = () => {
+    try {
+      // Preparar dados para exportação
+      const exportData: any[] = [];
+      
+      rsvps.forEach((rsvp) => {
+        // Adicionar dados do convidado principal
+        exportData.push({
+          'Nome Completo': `${rsvp.name} ${rsvp.last_name || ''}`.trim(),
+          'CPF': rsvp.cpf || '',
+          'Status da Confirmação': rsvp.attendance === 'sim' ? 'Confirmado' : 'Não Confirmado'
+        });
+        
+        // Adicionar dados dos acompanhantes
+        if (rsvp.companions && rsvp.companions.length > 0) {
+          rsvp.companions.forEach((companion) => {
+            exportData.push({
+              'Nome Completo': `${companion.name} ${companion.last_name || ''}`.trim(),
+              'CPF': companion.cpf || '',
+              'Status da Confirmação': 'Confirmado'
+            });
+          });
+        }
+      });
+      
+      // Verificar se há dados para exportar
+      if (exportData.length === 0) {
+        alert('Não há dados para exportar.');
+        return;
+      }
+      
+      // Criar workbook do Excel
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      
+      // Definir largura das colunas
+      const colWidths = [
+        { wch: 30 }, // Nome Completo
+        { wch: 18 }, // CPF
+        { wch: 20 }  // Status da Confirmação
+      ];
+      ws['!cols'] = colWidths;
+      
+      // Adicionar a planilha ao workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Convidados');
+      
+      // Gerar e baixar o arquivo Excel
+      const fileName = `convidados_chá_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      showToastMessage(`Dados de ${exportData.length} convidados exportados com sucesso!`, 'success');
+    } catch (error) {
+      console.error('Erro ao exportar dados:', error);
+      showToastMessage('Erro ao exportar dados. Tente novamente.', 'error');
+    }
+  };
+
   const loadMessages = async () => {
     try {
       setMessages([]);
@@ -1074,8 +1134,16 @@ function AdminDashboard() {
         {/* Tab Content */}
         {activeTab === 'rsvps' && (
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100">
-            <div className="px-6 py-4 border-b border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="text-lg font-medium text-gray-900">Confirmações de Presença</h3>
+              <button
+                onClick={exportGuestData}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
+                title="Exportar dados dos convidados para Excel"
+              >
+                <Download className="w-4 h-4" />
+                <span>Exportar Excel</span>
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
