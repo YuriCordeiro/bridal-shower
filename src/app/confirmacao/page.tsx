@@ -44,6 +44,13 @@ interface GuestForm {
 }
 
 export default function ConfirmacaoPage() {
+  // Função para verificar se ainda é possível confirmar presença
+  const isConfirmationAllowed = () => {
+    const currentDate = new Date();
+    const deadline = new Date('2025-11-15T23:59:59'); // Data limite: 15 de novembro de 2025
+    return currentDate <= deadline;
+  };
+
   const [formData, setFormData] = useState({
     name: "",
     whatsapp: "",
@@ -57,6 +64,7 @@ export default function ConfirmacaoPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [nameError, setNameError] = useState("");
   const [guestNameErrors, setGuestNameErrors] = useState<string[]>([]);
+  const [confirmationAllowed] = useState(isConfirmationAllowed());
   const router = useRouter();
 
   const handleCPFChange = (value: string) => {
@@ -131,6 +139,13 @@ export default function ConfirmacaoPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verificar se confirmações ainda são permitidas
+    if (!confirmationAllowed) {
+      alert('O prazo para confirmação de presença já foi encerrado. Entre em contato conosco caso precise fazer alguma alteração.');
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -256,7 +271,23 @@ export default function ConfirmacaoPage() {
       
       <main className="px-4 py-4 sm:py-8">
         <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">         
+            {!confirmationAllowed && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                    <span className="text-red-600 font-bold text-sm">!</span>
+                  </div>
+                  <div>
+                    <h4 className="text-red-800 font-medium">Prazo Encerrado</h4>
+                    <p className="text-red-700 text-sm">
+                      O prazo para confirmação de presença já foi encerrado. Se você precisa fazer alguma alteração, entre em contato conosco.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -269,10 +300,13 @@ export default function ConfirmacaoPage() {
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleNameChange(e.target.value)}
+                    disabled={!confirmationAllowed}
                     className={`w-full pl-10 pr-4 py-2.5 sm:py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent ${
                       nameError 
                         ? 'border-red-300 focus:ring-red-500' 
                         : 'border-gray-200 focus:ring-gray-500'
+                    } ${
+                      !confirmationAllowed ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
                     }`}
                     placeholder="Ex: João Silva"
                     required
@@ -297,8 +331,11 @@ export default function ConfirmacaoPage() {
                     id="whatsapp"
                     value={formData.whatsapp}
                     onChange={(e) => handleWhatsAppChange(e.target.value)}
+                    disabled={!confirmationAllowed}
                     maxLength={15}
-                    className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                    className={`w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent ${
+                      !confirmationAllowed ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                    }`}
                     placeholder="(11) 99999-9999"
                   />
                 </div>
@@ -315,8 +352,11 @@ export default function ConfirmacaoPage() {
                     id="cpf"
                     value={formData.cpf}
                     onChange={(e) => handleCPFChange(e.target.value)}
+                    disabled={!confirmationAllowed}
                     maxLength={14}
-                    className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                    className={`w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent ${
+                      !confirmationAllowed ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                    }`}
                     placeholder="000.000.000-00"
                     required
                   />
@@ -331,7 +371,7 @@ export default function ConfirmacaoPage() {
                   Você vai participar do chá de cozinha? *
                 </label>
                 <div className="space-y-3">
-                  <label className="flex items-center cursor-pointer">
+                  <label className={`flex items-center ${!confirmationAllowed ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                     <input
                       type="radio"
                       name="attendance"
@@ -341,13 +381,14 @@ export default function ConfirmacaoPage() {
                         ...prev, 
                         attendance: e.target.value as "sim" | "nao" 
                       }))}
-                      className="w-4 h-4 text-gray-600 border-gray-300 focus:ring-gray-500"
+                      disabled={!confirmationAllowed}
+                      className="w-4 h-4 text-gray-600 border-gray-300 focus:ring-gray-500 disabled:opacity-50"
                     />
                     <span className="ml-3 text-gray-700">
                       Sim, estarei presente!
                     </span>
                   </label>
-                  <label className="flex items-center cursor-pointer">
+                  <label className={`flex items-center ${!confirmationAllowed ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                     <input
                       type="radio"
                       name="attendance"
@@ -357,7 +398,8 @@ export default function ConfirmacaoPage() {
                         ...prev, 
                         attendance: e.target.value as "sim" | "nao" 
                       }))}
-                      className="w-4 h-4 text-gray-600 border-gray-300 focus:ring-gray-500"
+                      disabled={!confirmationAllowed}
+                      className="w-4 h-4 text-gray-600 border-gray-300 focus:ring-gray-500 disabled:opacity-50"
                     />
                     <span className="ml-3 text-gray-700">
                       Infelizmente não poderei ir
@@ -473,8 +515,11 @@ export default function ConfirmacaoPage() {
                     id="message"
                     value={formData.message}
                     onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                    disabled={!confirmationAllowed}
                     rows={3}
-                    className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent resize-none"
+                    className={`w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent resize-none ${
+                      !confirmationAllowed ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                    }`}
                     placeholder="Deixe uma mensagem carinhosa para os noivos..."
                   />
                 </div>
@@ -482,8 +527,12 @@ export default function ConfirmacaoPage() {
 
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gray-800 text-white py-3 sm:py-4 rounded-xl font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 mt-6"
+                disabled={isSubmitting || !confirmationAllowed}
+                className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl ${
+                  !confirmationAllowed 
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed'
+                }`}
               >
                 {isSubmitting ? (
                   <>
