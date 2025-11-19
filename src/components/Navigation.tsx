@@ -9,7 +9,7 @@ export default function Navigation() {
 
   const navItems = [
     { href: '/', icon: Heart, label: 'Início' },
-    { href: '/presentes', icon: Gift, label: 'Presentes' },
+    // { href: '/presentes', icon: Gift, label: 'Presentes' },
     { href: '/confirmacao', icon: Calendar, label: 'RSVP' },
   ];
 

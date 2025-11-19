@@ -209,7 +209,7 @@ export default function Home() {
               </div>
             </div>
 
-            <Link href="/presentes" className="block">
+            {/* <Link href="/presentes" className="block">
               <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 hover:bg-gray-50 transition-colors shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -222,7 +222,7 @@ export default function Home() {
                   <div className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 text-lg">›</div>
                 </div>
               </div>
-            </Link>
+            </Link> */}
 
             <Link href="/confirmacao" className="block">
               <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 hover:bg-gray-50 transition-colors shadow-sm">
